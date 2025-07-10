@@ -3,7 +3,7 @@ from datetime import date, timedelta, datetime
 from hijri_converter import convert
 import ephem
 
-# 📌 Tanggal Tahun Baru Imlek (manual lookup)
+# 📌 Tanggal Tahun Baru Imlek (lookup manual dari kalender Tionghoa)
 IMLEK_TANGGAL = {
     2025: "2025-01-29",
     2026: "2026-02-17",
@@ -13,7 +13,7 @@ IMLEK_TANGGAL = {
     2030: "2030-02-03"
 }
 
-# 📌 Daftar hari libur berbasis kalender Hijriah
+# 📌 Libur berdasarkan kalender Hijriah (nama, hari, bulan)
 LIBUR_HIJRI = [
     ("Isra Mikraj Nabi Muhammad", 27, 7),
     ("Awal Ramadan", 1, 9),
@@ -24,7 +24,6 @@ LIBUR_HIJRI = [
     ("Maulid Nabi Muhammad", 12, 3)
 ]
 
-# 📌 Hari libur tetap nasional
 def tanggal_tetap(tahun: int):
     return [
         {"Keterangan": f"Tahun Baru {tahun}", "Tanggal": f"{tahun}-01-01"},
@@ -34,7 +33,6 @@ def tanggal_tetap(tahun: int):
         {"Keterangan": "Natal", "Tanggal": f"{tahun}-12-25"}
     ]
 
-# 📌 Prediksi Hari Raya Waisak (purnama kedua setelah 21 Maret)
 def prediksi_waisak(tahun: int):
     try:
         start = ephem.Date(f"{tahun}/3/21")
@@ -47,35 +45,45 @@ def prediksi_waisak(tahun: int):
 
         tanggal_waisak = full_moons[1].isoformat()
         tahun_buddha = tahun + 544
-
         return {
-            "Keterangan": f"Hari Raya Waisak {tahun_buddha} (belum pasti)",
+            "Keterangan": f"Hari Raya Waisak {tahun_buddha} (prakiraan)",
             "Tanggal": tanggal_waisak
         }
     except Exception as e:
-        print(f"❌ Gagal hitung Waisak: {e}")
+        print(f"❌ Gagal prediksi Waisak: {e}")
         return None
 
-# 📌 Prediksi libur berdasarkan kalender Hijriah
 def prediksi_hijriyah(tahun: int):
     hasil = []
     for nama, hari, bulan in LIBUR_HIJRI:
-        if bulan in [7, 9, 10, 12]:
-            tahun_hijriyah = tahun - 579
-        else:
-            tahun_hijriyah = tahun - 578
+        # Estimasi tahun Hijriyah berdasarkan bulan
+        tahun_hijriyah = (tahun - 579) if bulan >= 7 else (tahun - 578)
 
         try:
-            tanggal_masehi = convert.Hijri(tahun_hijriyah, bulan, hari).to_gregorian()
-            hasil.append({
-                "Keterangan": f"{nama} (belum pasti)",
-                "Tanggal": tanggal_masehi.isoformat()
-            })
+            tgl = convert.Hijri(tahun_hijriyah, bulan, hari).to_gregorian()
+            tgl_masehi = tgl.isoformat()
+
+            # Koreksi jika tanggal ternyata tidak dalam tahun target
+            if not tgl_masehi.startswith(str(tahun)):
+                # Cek juga tahun sebelumnya & berikutnya jika meleset
+                for delta in [-1, 1]:
+                    try:
+                        tgl_alt = convert.Hijri(tahun_hijriyah + delta, bulan, hari).to_gregorian()
+                        if tgl_alt.year == tahun:
+                            tgl_masehi = tgl_alt.isoformat()
+                            break
+                    except:
+                        continue
+
+            if tgl_masehi.startswith(str(tahun)):
+                hasil.append({
+                    "Keterangan": f"{nama} (prakiraan)",
+                    "Tanggal": tgl_masehi
+                })
         except Exception as e:
-            print(f"❌ Gagal konversi {nama}: {e}")
+            print(f"❌ Gagal konversi {nama} {hari}/{bulan}/{tahun_hijriyah}: {e}")
     return hasil
 
-# 📌 Tambahkan Tahun Baru Imlek dan Cuti Imlek
 def tambah_imlek(tahun: int):
     hasil = []
     if tahun in IMLEK_TANGGAL:
@@ -90,7 +98,6 @@ def tambah_imlek(tahun: int):
         })
     return hasil
 
-# 📌 Gabungkan semua dan urutkan berdasarkan tanggal
 def prediksi_libur_tidak_tetap(tahun: int):
     hasil = []
     hasil += tanggal_tetap(tahun)
@@ -102,7 +109,6 @@ def prediksi_libur_tidak_tetap(tahun: int):
     hasil.sort(key=lambda x: datetime.fromisoformat(x["Tanggal"]))
     return hasil
 
-# 📌 Eksekusi utama
 if __name__ == "__main__":
     import sys
     tahun = int(sys.argv[1]) if len(sys.argv) > 1 else date.today().year + 1
