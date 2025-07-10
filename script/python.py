@@ -1,29 +1,50 @@
-from hijri_converter import convert
+import ephem
 import json
-from datetime import date
+from datetime import date, timedelta
 
-# Hari libur Hijriah (dikonversi ke Masehi)
-LIBUR_HIJRI = [
-    ("Isra Mikraj Nabi Muhammad", 27, 7),         # 27 Rajab
-    ("Awal Ramadan", 1, 9),                       # 1 Ramadan
-    ("Hari Raya Idul Fitri", 1, 10),              # 1 Syawal
-    ("Hari Raya Idul Fitri", 2, 10),              # 2 Syawal
-    ("Hari Raya Idul Adha", 10, 12),              # 10 Dzulhijjah
-    ("Tahun Baru Islam", 1, 1),                   # 1 Muharram
-    ("Maulid Nabi Muhammad", 12, 3)               # 12 Rabiul Awal
-]
+def find_second_full_moon(year: int):
+    # Cari tanggal full moon kedua setelah 21 Maret
+    start = ephem.Date(f"{year}/3/21")
+    count = 0
+    full_moons = []
+
+    while True:
+        next_full = ephem.localtime(ephem.next_full_moon(start))
+        full_moons.append(next_full)
+        count += 1
+        if count >= 2:
+            break
+        start = ephem.Date(next_full + timedelta(days=1))
+
+    return full_moons[1].date().isoformat()
+
+def prediksi_waisak(year: int):
+    tahun_buddha = year + 544
+    tanggal_waisak = find_second_full_moon(year)
+    return {
+        "Keterangan": f"Hari Raya Waisak {tahun_buddha} (belum pasti)",
+        "Tanggal": tanggal_waisak
+    }
 
 def prediksi_libur_tidak_tetap(tahun_masehi: int):
+    from hijri_converter import convert
+    LIBUR_HIJRI = [
+        ("Isra Mikraj Nabi Muhammad", 27, 7),
+        ("Awal Ramadan", 1, 9),
+        ("Hari Raya Idul Fitri", 1, 10),
+        ("Hari Raya Idul Fitri", 2, 10),
+        ("Hari Raya Idul Adha", 10, 12),
+        ("Tahun Baru Islam", 1, 1),
+        ("Maulid Nabi Muhammad", 12, 3)
+    ]
+
     hasil = []
 
     for nama, hari, bulan in LIBUR_HIJRI:
-        # Hijriyah ≈ Masehi - 579 (untuk bulan Ramadan–Dzulhijjah, Rajab)
-        # Hijriyah ≈ Masehi - 578 (untuk bulan Muharram, Rabiul Awal)
         if bulan in [7, 9, 10, 12]:
             tahun_hijriyah = tahun_masehi - 579
         else:
             tahun_hijriyah = tahun_masehi - 578
-
         try:
             tanggal_masehi = convert.Hijri(tahun_hijriyah, bulan, hari).to_gregorian()
             hasil.append({
@@ -33,14 +54,8 @@ def prediksi_libur_tidak_tetap(tahun_masehi: int):
         except Exception as e:
             print(f"Gagal konversi {nama}: {e}")
 
-    # Tambahkan prediksi Hari Raya Waisak (angka dan tanggal belum pasti)
-    tahun_buddha = tahun_masehi + 544
-    tanggal_waisak = f"{tahun_masehi}-05-15"  # Estimasi tanggal Waisak, rata-rata di bulan Mei
-
-    hasil.append({
-        "Keterangan": f"Hari Raya Waisak {tahun_buddha} (belum pasti)",
-        "Tanggal": tanggal_waisak
-    })
+    # Tambahkan Hari Raya Waisak lebih akurat
+    hasil.append(prediksi_waisak(tahun_masehi))
 
     return hasil
 
