@@ -3,6 +3,16 @@ from datetime import date, timedelta, datetime
 from hijri_converter import convert
 import ephem
 
+# 📌 Tanggal Tahun Baru Imlek (manual lookup)
+IMLEK_TANGGAL = {
+    2025: "2025-01-29",
+    2026: "2026-02-17",
+    2027: "2027-02-06",
+    2028: "2028-01-26",
+    2029: "2029-02-13",
+    2030: "2030-02-03"
+}
+
 # 📌 Daftar hari libur berbasis kalender Hijriah
 LIBUR_HIJRI = [
     ("Isra Mikraj Nabi Muhammad", 27, 7),
@@ -65,17 +75,30 @@ def prediksi_hijriyah(tahun: int):
             print(f"❌ Gagal konversi {nama}: {e}")
     return hasil
 
-# 📌 Gabungkan semua, dan urutkan berdasarkan tanggal
+# 📌 Tambahkan Tahun Baru Imlek dan Cuti Imlek
+def tambah_imlek(tahun: int):
+    hasil = []
+    if tahun in IMLEK_TANGGAL:
+        imlek = datetime.fromisoformat(IMLEK_TANGGAL[tahun])
+        hasil.append({
+            "Keterangan": f"Tahun Baru Imlek {tahun + 551} Kongzili",
+            "Tanggal": imlek.date().isoformat()
+        })
+        hasil.append({
+            "Keterangan": "Cuti Imlek",
+            "Tanggal": (imlek - timedelta(days=1)).date().isoformat()
+        })
+    return hasil
+
+# 📌 Gabungkan semua dan urutkan berdasarkan tanggal
 def prediksi_libur_tidak_tetap(tahun: int):
     hasil = []
     hasil += tanggal_tetap(tahun)
+    hasil += tambah_imlek(tahun)
     hasil += prediksi_hijriyah(tahun)
-
     waisak = prediksi_waisak(tahun)
     if waisak:
         hasil.append(waisak)
-
-    # 🔽 Urutkan berdasarkan tanggal
     hasil.sort(key=lambda x: datetime.fromisoformat(x["Tanggal"]))
     return hasil
 
@@ -84,9 +107,7 @@ if __name__ == "__main__":
     import sys
     tahun = int(sys.argv[1]) if len(sys.argv) > 1 else date.today().year + 1
     hasil = prediksi_libur_tidak_tetap(tahun)
-
     output_file = f"data/{tahun}.json"
     with open(output_file, "w") as f:
         json.dump(hasil, f, indent=2, ensure_ascii=False)
-
     print(f"✅ Data libur {tahun} disimpan di {output_file}")
