@@ -3,7 +3,7 @@ name: Fetch Hari Libur Nasional
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1' # Tiap Senin 00:00 UTC (07:00 WIB)
+    - cron: '0 0 * * 1' # Setiap Senin 00:00 UTC
 
 jobs:
   fetch-holidays:
@@ -21,7 +21,7 @@ jobs:
       - name: Install axios
         run: npm install axios
 
-      - name: Fetch & Filter Hari Libur
+      - name: Fetch & Simpan Hari Libur
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
@@ -77,6 +77,7 @@ jobs:
               }
             }
 
+            // Jika kosong, prediksi tanggal tidak tetap dari fallback
             if (result.length === 0 && fallback.length > 0) {
               const movable = [
                 'Isra Mikraj Nabi Muhammad',
@@ -97,30 +98,36 @@ jobs:
                 movable.some(m => ev.Keterangan.includes(m))
               ).map(ev => {
                 const date = new Date(ev.Tanggal);
-                date.setFullYear(year); // prediksi tahun depan
+                date.setFullYear(year);
                 return {
                   Keterangan: ev.Keterangan + ' (belum pasti)',
                   Tanggal: date.toISOString().split('T')[0]
                 };
               });
 
-              const fixedDates = {
-                [`${year}-01-01`]: `Tahun Baru ${year}`,
-                [`${year}-05-01`]: 'Hari Buruh',
-                [`${year}-06-01`]: 'Hari Pancasila',
-                [`${year}-08-17`]: `Proklamasi Kemerdekaan Ke-${year - 1945}`,
-                [`${year}-12-25`]: 'Natal',
-              };
-
-              const fixed = Object.entries(fixedDates).map(([tgl, ket]) => ({
-                Tanggal: tgl,
-                Keterangan: ket + ' (belum pasti)'
-              }));
-
-              return [...prediksi, ...fixed];
+              result.push(...prediksi);
             }
 
-            return result;
+            // Tambahkan tanggal tetap jika belum ada
+            const fixedDates = {
+              [`${year}-01-01`]: `Tahun Baru ${year}`,
+              [`${year}-05-01`]: 'Hari Buruh',
+              [`${year}-06-01`]: 'Hari Pancasila',
+              [`${year}-08-17`]: `Proklamasi Kemerdekaan Ke-${year - 1945}`,
+              [`${year}-12-25`]: 'Natal',
+            };
+
+            const existingDates = new Set(result.map(ev => ev.Tanggal));
+            for (const [tgl, ket] of Object.entries(fixedDates)) {
+              if (!existingDates.has(tgl)) {
+                result.push({
+                  Tanggal: tgl,
+                  Keterangan: ket + ' (belum pasti)'
+                });
+              }
+            }
+
+            return result.sort((a, b) => a.Tanggal.localeCompare(b.Tanggal));
           }
 
           const thisYear = new Date().getFullYear();
@@ -138,8 +145,9 @@ jobs:
 
             fs.writeFileSync(`${folder}/${thisYear}.json`, JSON.stringify(thisData, null, 2));
             fs.writeFileSync(`${folder}/${nextYear}.json`, JSON.stringify(nextData, null, 2));
-            console.log(`✅ Simpan: data/${thisYear}.json (${thisData.length} entri)`);
-            console.log(`✅ Simpan: data/${nextYear}.json (${nextData.length} entri)`);
+
+            console.log(`✅ data/${thisYear}.json (${thisData.length} entri)`);
+            console.log(`✅ data/${nextYear}.json (${nextData.length} entri)`);
           })();
           EOF
 
