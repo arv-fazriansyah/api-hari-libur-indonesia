@@ -1,5 +1,9 @@
 [
   {
+    "Tanggal": "2026-01-01",
+    "Keterangan": "Tahun Baru 2026 (belum pasti)"
+  },
+  {
     "Keterangan": "Isra Mikraj Nabi Muhammad (belum pasti)",
     "Tanggal": "2026-01-27"
   },
@@ -40,8 +44,16 @@
     "Tanggal": "2026-04-07"
   },
   {
+    "Tanggal": "2026-05-01",
+    "Keterangan": "Hari Buruh (belum pasti)"
+  },
+  {
     "Keterangan": "Cuti Waisak (belum pasti)",
     "Tanggal": "2026-05-13"
+  },
+  {
+    "Tanggal": "2026-06-01",
+    "Keterangan": "Hari Pancasila (belum pasti)"
   },
   {
     "Keterangan": "Hari Raya Idul Adha 1446 Hijriyah (belum pasti)",
@@ -56,31 +68,19 @@
     "Tanggal": "2026-06-27"
   },
   {
-    "Keterangan": "Maulid Nabi Muhammad (belum pasti)",
-    "Tanggal": "2026-09-05"
-  },
-  {
-    "Keterangan": "Cuti Natal (belum pasti)",
-    "Tanggal": "2026-12-26"
-  },
-  {
-    "Tanggal": "2026-01-01",
-    "Keterangan": "Tahun Baru 2026 (belum pasti)"
-  },
-  {
-    "Tanggal": "2026-05-01",
-    "Keterangan": "Hari Buruh (belum pasti)"
-  },
-  {
-    "Tanggal": "2026-06-01",
-    "Keterangan": "Hari Pancasila (belum pasti)"
-  },
-  {
     "Tanggal": "2026-08-17",
     "Keterangan": "Proklamasi Kemerdekaan Ke-81 (belum pasti)"
   },
   {
+    "Keterangan": "Maulid Nabi Muhammad (belum pasti)",
+    "Tanggal": "2026-09-05"
+  },
+  {
     "Tanggal": "2026-12-25",
     "Keterangan": "Natal (belum pasti)"
+  },
+  {
+    "Keterangan": "Cuti Natal (belum pasti)",
+    "Tanggal": "2026-12-26"
   }
 ]
