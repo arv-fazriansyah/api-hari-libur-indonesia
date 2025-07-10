@@ -40,6 +40,10 @@
     "Tanggal": "2026-04-07"
   },
   {
+    "Keterangan": "Cuti Waisak (belum pasti)",
+    "Tanggal": "2026-05-13"
+  },
+  {
     "Keterangan": "Hari Raya Idul Adha 1446 Hijriyah (belum pasti)",
     "Tanggal": "2026-06-06"
   },
@@ -58,5 +62,25 @@
   {
     "Keterangan": "Cuti Natal (belum pasti)",
     "Tanggal": "2026-12-26"
+  },
+  {
+    "Tanggal": "2026-01-01",
+    "Keterangan": "Tahun Baru 2026 (belum pasti)"
+  },
+  {
+    "Tanggal": "2026-05-01",
+    "Keterangan": "Hari Buruh (belum pasti)"
+  },
+  {
+    "Tanggal": "2026-06-01",
+    "Keterangan": "Hari Pancasila (belum pasti)"
+  },
+  {
+    "Tanggal": "2026-08-17",
+    "Keterangan": "Proklamasi Kemerdekaan Ke-81 (belum pasti)"
+  },
+  {
+    "Tanggal": "2026-12-25",
+    "Keterangan": "Natal (belum pasti)"
   }
 ]
