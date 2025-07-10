@@ -1,35 +1,43 @@
 import json
+import sys
+from datetime import datetime
 from hijri_converter import convert
-from datetime import datetime, timedelta
 
-def hijri_to_masehi(hijri_year, hijri_month, hijri_day):
+def hijri_to_gregorian(hyear, hmonth, hday):
     try:
-        return convert.Hijri(hijri_year, hijri_month, hijri_day).to_gregorian()
+        g = convert.Hijri(hyear, hmonth, hday).to_gregorian()
+        return g.isoformat()
     except:
         return None
 
-def main(year):
-    events = []
+def main(target_year):
+    prediksi = []
 
-    hijri_year = year - 579  # asumsi Hijriyah lebih kecil 579
-    # Idul Fitri 1 Syawal
-    fitri = hijri_to_masehi(hijri_year, 10, 1)
+    hijri_year = target_year - 579
+    fitri = hijri_to_gregorian(hijri_year, 10, 1)
     if fitri:
-        events.append({ "Keterangan": f"Hari Raya Idul Fitri {hijri_year} Hijriyah (belum pasti)", "Tanggal": str(fitri) })
+        prediksi.append({
+            "Keterangan": f"Hari Raya Idul Fitri {hijri_year} Hijriyah (belum pasti)",
+            "Tanggal": fitri
+        })
 
-    # Idul Adha 10 Dzulhijjah
-    adha = hijri_to_masehi(hijri_year, 12, 10)
+    adha = hijri_to_gregorian(hijri_year, 12, 10)
     if adha:
-        events.append({ "Keterangan": f"Hari Raya Idul Adha {hijri_year} Hijriyah (belum pasti)", "Tanggal": str(adha) })
+        prediksi.append({
+            "Keterangan": f"Hari Raya Idul Adha {hijri_year} Hijriyah (belum pasti)",
+            "Tanggal": adha
+        })
 
-    # Tahun Baru Islam 1 Muharram
-    muharram = hijri_to_masehi(hijri_year + 1, 1, 1)
+    muharram = hijri_to_gregorian(hijri_year + 1, 1, 1)
     if muharram:
-        events.append({ "Keterangan": f"Tahun Baru Islam {hijri_year + 1} Hijriyah (belum pasti)", "Tanggal": str(muharram) })
+        prediksi.append({
+            "Keterangan": f"Tahun Baru Islam {hijri_year + 1} Hijriyah (belum pasti)",
+            "Tanggal": muharram
+        })
 
-    print(json.dumps(events, indent=2))
+    prediksi.sort(key=lambda x: x["Tanggal"])
+    print(json.dumps(prediksi, indent=2))
 
 if __name__ == "__main__":
-    import sys
-    year = int(sys.argv[1]) if len(sys.argv) > 1 else datetime.now().year + 1
-    main(year)
+    target_year = int(sys.argv[1]) if len(sys.argv) > 1 else datetime.now().year + 1
+    main(target_year)
