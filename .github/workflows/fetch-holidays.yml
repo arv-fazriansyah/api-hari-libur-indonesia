@@ -3,7 +3,7 @@ name: Fetch Google Calendar Holidays
 on:
   schedule:
     - cron: "0 3 * * 0" # setiap Minggu jam 10:00 WIB
-  workflow_dispatch: # bisa dijalankan manual
+  workflow_dispatch:
 
 jobs:
   fetch-holidays:
@@ -31,6 +31,25 @@ jobs:
           const fs = require('fs');
           const dayjs = require('dayjs');
 
+          const addYearIfNeeded = (summary, date) => {
+            const year = new Date(date).getFullYear();
+
+            // Jangan ubah jika sudah ada angka (2025, 1446, 2576, dll)
+            if (/\d{3,4}/.test(summary)) return summary;
+
+            if (/Tahun Baru(?! Imlek)/i.test(summary)) return \`Tahun Baru \${year}\`;
+            if (/Hari Raya Idul Adha/i.test(summary)) return "Hari Raya Idul Adha 1446 Hijriyah";
+            if (/Idul Fitri/i.test(summary)) return "Hari Raya Idul Fitri 1446 Hijriyah";
+            if (/Waisak/i.test(summary)) return "Hari Raya Waisak 2569";
+            if (/Tahun Baru Imlek/i.test(summary)) return "Tahun Baru Imlek 2576 Kongzili";
+            if (/Proklamasi Kemerdekaan/i.test(summary)) return \`Proklamasi Kemerdekaan Ke-\${year - 1945}\`;
+            if (/Tahun Baru Hijriah|Satu Muharam/i.test(summary)) return "Satu Muharam / Tahun Baru Hijriah (belum pasti)";
+            if (/Maulid Nabi/i.test(summary)) return "Maulid Nabi Muhammad (belum pasti)";
+            if (/Idul Adha/i.test(summary)) return "Idul Adha (Lebaran Haji) (belum pasti)";
+
+            return summary;
+          };
+
           async function fetchAndSave(year) {
             const timeMin = \`\${year}-01-01T00:00:00Z\`;
             const timeMax = \`\${year}-12-31T23:59:59Z\`;
@@ -47,7 +66,7 @@ jobs:
               }
 
               const output = events.map(e => ({
-                Keterangan: e.summary,
+                Keterangan: addYearIfNeeded(e.summary, e.start.date),
                 Tanggal: e.start.date
               }));
 
