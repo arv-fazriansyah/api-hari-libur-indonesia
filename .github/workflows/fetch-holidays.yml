@@ -1,4 +1,4 @@
-name: Fetch Hari Libur Nasional dengan Prediksi Akurat
+name: Fetch Hari Libur Nasional
 
 on:
   workflow_dispatch:
@@ -6,14 +6,14 @@ on:
     - cron: '0 0 * * 1' # Setiap Senin 00:00 UTC
 
 jobs:
-  fetch-holidays:
+  fetch:
     runs-on: ubuntu-latest
 
     env:
-      NEXT_YEAR: ${{ github.event.inputs.year || format('{0}', fromJSON('{"now":"'${{github.run_started_at}}'"}').now | fromISO | addYears(1) | format('yyyy')) }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -24,33 +24,179 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           npm install axios
           pip install hijri-converter
 
-      - name: Fetch Hari Libur Tahun Ini & Tahun Depan
-        env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      - name: Create Predict.py
         run: |
-          node fetch_holidays.js
+          mkdir -p scripts
+          cat << 'EOF' > scripts/predict.py
+import json
+from hijri_converter import convert
+from datetime import datetime
 
-      - name: Prediksi Hari Libur Tahun Depan jika kosong
-        run: |
-          FILE=data/${NEXT_YEAR}.json
-          if [ ! -s "$FILE" ]; then
-            echo "File kosong. Buat prediksi untuk $NEXT_YEAR"
-            python predict_holidays.py $NEXT_YEAR > $FILE
-          else
-            echo "File sudah ada data. Lewati prediksi."
-          fi
+def hijri_to_masehi(hyear, hmonth, hday):
+    try:
+        return convert.Hijri(hyear, hmonth, hday).to_gregorian()
+    except:
+        return None
 
-      - name: Commit dan Push jika ada perubahan
+def main(year):
+    hijri_year = year - 579
+    result = []
+
+    fitri = hijri_to_masehi(hijri_year, 10, 1)
+    if fitri:
+        result.append({
+            "Keterangan": f"Hari Raya Idul Fitri {hijri_year} Hijriyah (belum pasti)",
+            "Tanggal": str(fitri)
+        })
+
+    adha = hijri_to_masehi(hijri_year, 12, 10)
+    if adha:
+        result.append({
+            "Keterangan": f"Hari Raya Idul Adha {hijri_year} Hijriyah (belum pasti)",
+            "Tanggal": str(adha)
+        })
+
+    muharram = hijri_to_masehi(hijri_year + 1, 1, 1)
+    if muharram:
+        result.append({
+            "Keterangan": f"Tahun Baru Islam {hijri_year + 1} Hijriyah (belum pasti)",
+            "Tanggal": str(muharram)
+        })
+
+    print(json.dumps(result, indent=2))
+
+if __name__ == "__main__":
+    import sys
+    year = int(sys.argv[1]) if len(sys.argv) > 1 else datetime.now().year + 1
+    main(year)
+EOF
+
+      - name: Fetch & Simpan Hari Libur (JavaScript)
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          node <<'EOF'
+const fs = require('fs');
+const axios = require('axios');
+const { execSync } = require('child_process');
+
+async function fetchEvents(year) {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday@group.v.calendar.google.com/events?key=${process.env.GOOGLE_API_KEY}&timeMin=${year}-01-01T00:00:00Z&timeMax=${year}-12-31T23:59:59Z&orderBy=startTime&singleEvents=true`;
+  const res = await axios.get(url);
+  return res.data.items;
+}
+
+function generate(year, events, fallback = []) {
+  const keywords = {
+    'Hari Tahun Baru': `Tahun Baru ${year}`,
+    'Satu Muharam / Tahun Baru Hijriah': `Tahun Baru Islam ${year - 578} Hijriyah`,
+    'Tahun Baru Imlek': `Tahun Baru Imlek ${year + 551} Kongzili`,
+    'Hari Raya Waisak': `Hari Raya Waisak ${year + 544}`,
+    'Cuti Bersama Tahun Baru Imlek': 'Cuti Imlek',
+    'Isra Mikraj Nabi Muhammad': 'Isra Mikraj Nabi Muhammad',
+    'Hari Suci Nyepi (Tahun Baru Saka)': 'Nyepi',
+    'Cuti Bersama Hari Suci Nyepi (Tahun Baru Saka)': 'Cuti Nyepi',
+    'Maulid Nabi Muhammad': 'Maulid Nabi Muhammad',
+    'Kenaikan Isa': 'Kenaikan Isa Almasih',
+    'Wafat Isa Almasih': 'Wafat Isa Almasih',
+    'Ramadan Start': 'Awal Ramadan',
+    'Cuti Bersama Idul Fitri': 'Cuti Idul Fitri',
+    'Hari Idul Fitri': `Hari Raya Idul Fitri ${year - 579} Hijriyah`,
+    'Hari Buruh Internasional / Pekerja': 'Hari Buruh',
+    'Hari Lahir Pancasila': 'Hari Pancasila',
+    'Cuti Bersama Waisak': 'Cuti Waisak',
+    'Idul Adha (Lebaran Haji)': `Hari Raya Idul Adha ${year - 579} Hijriyah`,
+    'Hari Proklamasi Kemerdekaan R.I.': `Proklamasi Kemerdekaan Ke-${year - 1945}`,
+    'Hari Raya Natal': 'Natal',
+    'Cuti Bersama Natal (Hari Tinju)': 'Cuti Natal',
+  };
+
+  const result = [];
+
+  for (const e of events) {
+    for (const k in keywords) {
+      if (e.summary.includes(k)) {
+        result.push({
+          Keterangan: keywords[k],
+          Tanggal: e.start.date
+        });
+        break;
+      }
+    }
+  }
+
+  if (result.length === 0 && fallback.length > 0) {
+    const movable = [
+      'Isra Mikraj', 'Awal Ramadan', 'Idul Fitri',
+      'Cuti Idul Fitri', 'Idul Adha', 'Tahun Baru Islam',
+      'Maulid', 'Nyepi', 'Cuti Nyepi', 'Cuti Natal',
+      'Cuti Imlek', 'Cuti Waisak'
+    ];
+    const prediksi = fallback.filter(ev =>
+      movable.some(m => ev.Keterangan.includes(m))
+    ).map(ev => {
+      const d = new Date(ev.Tanggal);
+      d.setFullYear(year);
+      return {
+        Keterangan: ev.Keterangan + ' (belum pasti)',
+        Tanggal: d.toISOString().split('T')[0]
+      };
+    });
+    result.push(...prediksi);
+  }
+
+  const fixed = {
+    [`${year}-01-01`]: `Tahun Baru ${year}`,
+    [`${year}-05-01`]: 'Hari Buruh',
+    [`${year}-06-01`]: 'Hari Pancasila',
+    [`${year}-08-17`]: `Proklamasi Kemerdekaan Ke-${year - 1945}`,
+    [`${year}-12-25`]: 'Natal',
+  };
+
+  const exists = new Set(result.map(e => e.Tanggal));
+  for (const [tgl, ket] of Object.entries(fixed)) {
+    if (!exists.has(tgl)) {
+      result.push({ Keterangan: ket, Tanggal: tgl });
+    }
+  }
+
+  return result
+    .sort((a, b) => a.Tanggal.localeCompare(b.Tanggal))
+    .map(e => ({ Keterangan: e.Keterangan, Tanggal: e.Tanggal }));
+}
+
+(async () => {
+  const thisYear = new Date().getFullYear();
+  const nextYear = thisYear + 1;
+  const dir = 'data';
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+
+  const now = await fetchEvents(thisYear);
+  const nowData = generate(thisYear, now);
+  fs.writeFileSync(`${dir}/${thisYear}.json`, JSON.stringify(nowData, null, 2));
+
+  const next = await fetchEvents(nextYear);
+  let nextData = generate(nextYear, next, nowData);
+
+  if (nextData.length === 0) {
+    console.log("Tahun depan kosong, gunakan prediksi Python");
+    const predicted = JSON.parse(execSync(`python3 scripts/predict.py ${nextYear}`).toString());
+    nextData = generate(nextYear, [], predicted);
+  }
+
+  fs.writeFileSync(`${dir}/${nextYear}.json`, JSON.stringify(nextData, null, 2));
+})();
+EOF
+
+      - name: Commit & Push
+        run: |
+          git config --global user.name github-actions
+          git config --global user.email github-actions@users.noreply.github.com
           git add data/*.json
-          git diff --cached --quiet || git commit -m "Update hari libur nasional (resmi & prediksi akurat)"
+          git diff --cached --quiet || git commit -m "Update hari libur resmi & prediksi akurat"
           git push
