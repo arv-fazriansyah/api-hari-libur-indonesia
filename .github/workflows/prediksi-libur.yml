@@ -29,7 +29,7 @@ jobs:
 
     - name: Jalankan script prediksi
       run: |
-        python scripts/prediksi_libur_islam.py
+        python scripts/converter.py
 
     - name: Commit dan Push hasil
       run: |
