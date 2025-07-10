@@ -3,7 +3,7 @@ from datetime import date, timedelta, datetime
 from hijri_converter import convert
 import ephem
 
-# 📌 Tanggal Tahun Baru Imlek (lookup manual dari kalender Tionghoa)
+# Tanggal Tahun Baru Imlek (manual lookup)
 IMLEK_TANGGAL = {
     2025: "2025-01-29",
     2026: "2026-02-17",
@@ -13,7 +13,7 @@ IMLEK_TANGGAL = {
     2030: "2030-02-03"
 }
 
-# 📌 Libur berdasarkan kalender Hijriah (nama, hari, bulan)
+# Libur Hijriah: (nama, hari, bulan)
 LIBUR_HIJRI = [
     ("Isra Mikraj Nabi Muhammad", 27, 7),
     ("Awal Ramadan", 1, 9),
@@ -56,16 +56,12 @@ def prediksi_waisak(tahun: int):
 def prediksi_hijriyah(tahun: int):
     hasil = []
     for nama, hari, bulan in LIBUR_HIJRI:
-        # Estimasi tahun Hijriyah berdasarkan bulan
         tahun_hijriyah = (tahun - 579) if bulan >= 7 else (tahun - 578)
-
         try:
             tgl = convert.Hijri(tahun_hijriyah, bulan, hari).to_gregorian()
             tgl_masehi = tgl.isoformat()
 
-            # Koreksi jika tanggal ternyata tidak dalam tahun target
             if not tgl_masehi.startswith(str(tahun)):
-                # Cek juga tahun sebelumnya & berikutnya jika meleset
                 for delta in [-1, 1]:
                     try:
                         tgl_alt = convert.Hijri(tahun_hijriyah + delta, bulan, hari).to_gregorian()
@@ -98,14 +94,38 @@ def tambah_imlek(tahun: int):
         })
     return hasil
 
+def prediksi_cuti_bersama(tahun: int, libur_list: list):
+    hasil = []
+    for libur in libur_list:
+        keterangan = libur["Keterangan"]
+        tgl = datetime.fromisoformat(libur["Tanggal"])
+
+        if "Idul Fitri" in keterangan:
+            if "1" in keterangan:
+                hasil.append({
+                    "Keterangan": "Cuti Bersama Idul Fitri (prakiraan)",
+                    "Tanggal": (tgl - timedelta(days=1)).isoformat()
+                })
+            if "2" in keterangan:
+                hasil.append({
+                    "Keterangan": "Cuti Bersama Idul Fitri (prakiraan)",
+                    "Tanggal": (tgl + timedelta(days=1)).isoformat()
+                })
+        elif "Natal" in keterangan:
+            hasil.append({
+                "Keterangan": "Cuti Bersama Natal (prakiraan)",
+                "Tanggal": (tgl - timedelta(days=1)).isoformat()
+            })
+    return hasil
+
 def prediksi_libur_tidak_tetap(tahun: int):
     hasil = []
     hasil += tanggal_tetap(tahun)
     hasil += tambah_imlek(tahun)
     hasil += prediksi_hijriyah(tahun)
     waisak = prediksi_waisak(tahun)
-    if waisak:
-        hasil.append(waisak)
+    if waisak: hasil.append(waisak)
+    hasil += prediksi_cuti_bersama(tahun, hasil)
     hasil.sort(key=lambda x: datetime.fromisoformat(x["Tanggal"]))
     return hasil
 
