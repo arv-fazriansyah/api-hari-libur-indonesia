@@ -1,13 +1,16 @@
-name: Fetch Hari Libur Nasional
+name: Fetch Hari Libur Nasional dengan Prediksi Akurat
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1' # Setiap Senin 00:00 UTC (07:00 WIB)
+    - cron: '0 0 * * 1' # Setiap Senin 00:00 UTC
 
 jobs:
   fetch-holidays:
     runs-on: ubuntu-latest
+
+    env:
+      NEXT_YEAR: ${{ github.event.inputs.year || format('{0}', fromJSON('{"now":"'${{github.run_started_at}}'"}').now | fromISO | addYears(1) | format('yyyy')) }}
 
     steps:
       - name: Checkout repository
@@ -18,143 +21,36 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install axios
-        run: npm install axios
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-      - name: Fetch & Simpan Hari Libur
+      - name: Install dependencies
+        run: |
+          npm install axios
+          pip install hijri-converter
+
+      - name: Fetch Hari Libur Tahun Ini & Tahun Depan
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
-          node <<'EOF'
-          const fs = require('fs');
-          const axios = require('axios');
+          node fetch_holidays.js
 
-          async function fetchRawEvents(year) {
-            const timeMin = `${year}-01-01T00:00:00Z`;
-            const timeMax = `${year}-12-31T23:59:59Z`;
-            const calendarId = 'id.indonesian%23holiday@group.v.calendar.google.com';
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${process.env.GOOGLE_API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&orderBy=startTime&singleEvents=true`;
-            const { data } = await axios.get(url);
-            return data.items;
-          }
-
-          function generateHolidays(year, rawEvents, fallback = []) {
-            const keywords = {
-              'Hari Tahun Baru': `Tahun Baru ${year}`,
-              'Satu Muharam / Tahun Baru Hijriah': `Tahun Baru Islam ${year - 578} Hijriyah`,
-              'Tahun Baru Imlek': `Tahun Baru Imlek ${year + 551} Kongzili`,
-              'Hari Raya Waisak': `Hari Raya Waisak ${year + 544}`,
-              'Cuti Bersama Tahun Baru Imlek': 'Cuti Imlek',
-              'Isra Mikraj Nabi Muhammad': 'Isra Mikraj Nabi Muhammad',
-              'Hari Suci Nyepi (Tahun Baru Saka)': 'Nyepi',
-              'Cuti Bersama Hari Suci Nyepi (Tahun Baru Saka)': 'Cuti Nyepi',
-              'Maulid Nabi Muhammad': 'Maulid Nabi Muhammad',
-              'Kenaikan Isa': 'Kenaikan Isa Almasih',
-              'Wafat Isa Almasih': 'Wafat Isa Almasih',
-              'Ramadan Start': 'Awal Ramadan',
-              'Cuti Bersama Idul Fitri': 'Cuti Idul Fitri',
-              'Hari Idul Fitri': `Hari Raya Idul Fitri ${year - 579} Hijriyah`,
-              'Hari Buruh Internasional / Pekerja': 'Hari Buruh',
-              'Hari Lahir Pancasila': 'Hari Pancasila',
-              'Cuti Bersama Waisak': 'Cuti Waisak',
-              'Idul Adha (Lebaran Haji)': `Hari Raya Idul Adha ${year - 579} Hijriyah`,
-              'Hari Proklamasi Kemerdekaan R.I.': `Proklamasi Kemerdekaan Ke-${year - 1945}`,
-              'Hari Raya Natal': 'Natal',
-              'Cuti Bersama Natal (Hari Tinju)': 'Cuti Natal',
-            };
-
-            const result = [];
-
-            for (const event of rawEvents) {
-              for (const key in keywords) {
-                if (event.summary.includes(key)) {
-                  result.push({
-                    Keterangan: keywords[key],
-                    Tanggal: event.start.date
-                  });
-                  break;
-                }
-              }
-            }
-
-            // Jika kosong, prediksi dari fallback untuk hari tidak tetap
-            if (result.length === 0 && fallback.length > 0) {
-              const movable = [
-                'Isra Mikraj Nabi Muhammad',
-                'Awal Ramadan',
-                'Hari Raya Idul Fitri',
-                'Cuti Idul Fitri',
-                'Hari Raya Idul Adha',
-                'Tahun Baru Islam',
-                'Maulid Nabi Muhammad',
-                'Nyepi',
-                'Cuti Nyepi',
-                'Cuti Natal',
-                'Cuti Imlek',
-                'Cuti Waisak'
-              ];
-
-              const prediksi = fallback.filter(ev =>
-                movable.some(m => ev.Keterangan.includes(m))
-              ).map(ev => {
-                const date = new Date(ev.Tanggal);
-                date.setFullYear(year);
-                return {
-                  Keterangan: ev.Keterangan + ' (belum pasti)',
-                  Tanggal: date.toISOString().split('T')[0]
-                };
-              });
-
-              result.push(...prediksi);
-            }
-
-            // Tambahkan tanggal tetap jika belum ada, tanpa "(belum pasti)"
-            const fixedDates = {
-              [`${year}-01-01`]: `Tahun Baru ${year}`,
-              [`${year}-05-01`]: 'Hari Buruh',
-              [`${year}-06-01`]: 'Hari Pancasila',
-              [`${year}-08-17`]: `Proklamasi Kemerdekaan Ke-${year - 1945}`,
-              [`${year}-12-25`]: 'Natal',
-            };
-
-            const existingDates = new Set(result.map(ev => ev.Tanggal));
-            for (const [tgl, ket] of Object.entries(fixedDates)) {
-              if (!existingDates.has(tgl)) {
-                result.push({ Keterangan: ket, Tanggal: tgl });
-              }
-            }
-
-            // Sort dan format properti secara konsisten
-            return result
-              .sort((a, b) => a.Tanggal.localeCompare(b.Tanggal))
-              .map(ev => ({ Keterangan: ev.Keterangan, Tanggal: ev.Tanggal }));
-          }
-
-          const thisYear = new Date().getFullYear();
-          const nextYear = thisYear + 1;
-
-          (async () => {
-            const thisEvents = await fetchRawEvents(thisYear);
-            const nextEvents = await fetchRawEvents(nextYear);
-
-            const thisData = generateHolidays(thisYear, thisEvents);
-            const nextData = generateHolidays(nextYear, nextEvents, thisData);
-
-            const folder = 'data';
-            if (!fs.existsSync(folder)) fs.mkdirSync(folder);
-
-            fs.writeFileSync(`${folder}/${thisYear}.json`, JSON.stringify(thisData, null, 2));
-            fs.writeFileSync(`${folder}/${nextYear}.json`, JSON.stringify(nextData, null, 2));
-
-            console.log(`✅ data/${thisYear}.json (${thisData.length} entri)`);
-            console.log(`✅ data/${nextYear}.json (${nextData.length} entri)`);
-          })();
-          EOF
+      - name: Prediksi Hari Libur Tahun Depan jika kosong
+        run: |
+          FILE=data/${NEXT_YEAR}.json
+          if [ ! -s "$FILE" ]; then
+            echo "File kosong. Buat prediksi untuk $NEXT_YEAR"
+            python predict_holidays.py $NEXT_YEAR > $FILE
+          else
+            echo "File sudah ada data. Lewati prediksi."
+          fi
 
       - name: Commit dan Push jika ada perubahan
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/*.json
-          git diff --cached --quiet || git commit -m "Update hari libur nasional (resmi & prediksi)"
+          git diff --cached --quiet || git commit -m "Update hari libur nasional (resmi & prediksi akurat)"
           git push
