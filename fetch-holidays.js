@@ -9,8 +9,8 @@ const years = [thisYear, thisYear + 1];
 
 (async () => {
   for (const year of years) {
-    const timeMin = `${year - 1}-12-31T17:00:00Z`; // UTC+7 offset
-    const timeMax = `${year}-12-31T16:59:59Z`;
+    const timeMin = `${year}-01-01T00:00:00+07:00`;
+    const timeMax = `${year}-12-31T23:59:59+07:00`;
 
     const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&orderBy=startTime&singleEvents=true`;
 
