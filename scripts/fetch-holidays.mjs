@@ -6,26 +6,26 @@ import fetch from 'node-fetch';
 
 dotenv.config();
 
-const API_KEY = process.env.GCAL_API_KEY;
+const API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = 'id.indonesian%23holiday@group.v.calendar.google.com';
 
 const keywordFilter = [
-  'Tahun Baru Masehi',
-  'Isra Mikraj Nabi Muhammad SAW',
-  'Tahun Baru Imlek',
-  'Hari Suci Nyepi',
-  'Hari Raya Idul Fitri',
-  'Wafat Yesus Kristus',
-  'Hari Buruh Internasional',
-  'Kenaikan Yesus Kristus',
-  'Hari Raya Idul Adha',
-  'Hari Raya Waisak',
-  'Hari Lahir Pancasila',
-  'Tahun Baru Islam',
-  'Hari Kemerdekaan Republik Indonesia',
-  'Maulid Nabi Muhammad SAW',
-  'Hari Raya Natal',
-  'Cuti'
+  'tahun baru',
+  'mikraj',
+  'imlek',
+  'nyepi',
+  'idul fitri',
+  'wafat',
+  'buruh',
+  'kenaikan',
+  'idul adha',
+  'waisak',
+  'pancasila',
+  'tahun baru islam',
+  'kemerdekaan',
+  'maulid',
+  'natal',
+  'cuti'
 ];
 
 function isRelevant(summary) {
