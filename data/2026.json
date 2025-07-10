@@ -1,7 +1,35 @@
 [
   {
+    "Keterangan": "Tahun Baru 2026",
+    "Tanggal": "2026-01-01"
+  },
+  {
+    "Keterangan": "Hari Buruh",
+    "Tanggal": "2026-05-01"
+  },
+  {
+    "Keterangan": "Hari Pancasila",
+    "Tanggal": "2026-06-01"
+  },
+  {
+    "Keterangan": "Proklamasi Kemerdekaan Ke-81",
+    "Tanggal": "2026-08-17"
+  },
+  {
+    "Keterangan": "Natal",
+    "Tanggal": "2026-12-25"
+  },
+  {
+    "Keterangan": "Cuti Natal",
+    "Tanggal": "2026-12-26"
+  },
+  {
+    "Keterangan": "Isra Mikraj Nabi Muhammad (belum pasti)",
+    "Tanggal": "2026-01-16"
+  },
+  {
     "Keterangan": "Awal Ramadan (belum pasti)",
-    "Tanggal": "2027-02-08"
+    "Tanggal": "2026-02-18"
   },
   {
     "Keterangan": "Hari Raya Idul Fitri (belum pasti)",
@@ -22,5 +50,9 @@
   {
     "Keterangan": "Maulid Nabi Muhammad (belum pasti)",
     "Tanggal": "2026-08-25"
+  },
+  {
+    "Keterangan": "Hari Raya Waisak 2570 (belum pasti)",
+    "Tanggal": "2026-05-15"
   }
 ]
