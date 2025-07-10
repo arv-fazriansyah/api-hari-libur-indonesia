@@ -1,34 +1,65 @@
-name: Fetch Hari Libur
+name: Fetch Hari Libur Google Calendar
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * 1' # Setiap Senin jam 09:00 WIB
+    - cron: '0 0 * * 1' # setiap hari Senin jam 00:00 UTC
 
 jobs:
-  fetch-libur:
+  fetch-holidays:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: 18
 
       - name: Install dependencies
-        run: npm install node-fetch@2 --save
+        run: npm install axios
 
-      - name: Run script to fetch holidays
-        run: node fetch-holidays.js
+      - name: Fetch holidays and save JSON
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const axios = require('axios');
+
+          async function fetchHolidays(year) {
+            const timeMin = `${year}-01-01T00:00:00Z`;
+            const timeMax = `${year}-12-31T23:59:59Z`;
+            const calendarId = 'id.indonesian%23holiday@group.v.calendar.google.com';
+            const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${process.env.GOOGLE_API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&orderBy=startTime&singleEvents=true`;
+
+            const { data } = await axios.get(url);
+            const events = data.items.map(item => ({
+              Keterangan: item.summary,
+              Tanggal: item.start.date,
+            }));
+
+            const folder = 'data';
+            if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+
+            fs.writeFileSync(`${folder}/${year}.json`, JSON.stringify(events, null, 2));
+            console.log(`✅ Saved ${events.length} holidays to ${folder}/${year}.json`);
+          }
+
+          const thisYear = new Date().getFullYear();
+          const nextYear = thisYear + 1;
+
+          (async () => {
+            await fetchHolidays(thisYear);
+            await fetchHolidays(nextYear);
+          })();
+          EOF
 
       - name: Commit and push if changed
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data/*.json
-          git diff --quiet && echo "No changes" || (git commit -m "Update libur nasional dari Google Calendar" && git push)
+          git diff --cached --quiet || git commit -m "Update holiday JSON files"
+          git push
