@@ -1,0 +1,76 @@
+name: Fetch Google Calendar Holidays
+
+on:
+  schedule:
+    - cron: "0 3 * * 0" # setiap Minggu jam 10:00 WIB
+  workflow_dispatch: # bisa juga dijalankan manual
+
+jobs:
+  fetch-holidays:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install axios dayjs
+
+      - name: Fetch holidays and save to JSON
+        env:
+          API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          node <<EOF
+          const axios = require('axios');
+          const fs = require('fs');
+          const dayjs = require('dayjs');
+
+          async function fetchAndSave(year) {
+            const timeMin = \`\${year}-01-01T00:00:00Z\`;
+            const timeMax = \`\${year}-12-31T23:59:59Z\`;
+
+            const url = \`https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday@group.v.calendar.google.com/events?key=\${process.env.API_KEY}&timeMin=\${timeMin}&timeMax=\${timeMax}&orderBy=startTime&singleEvents=true\`;
+
+            try {
+              const res = await axios.get(url);
+              const events = res.data.items || [];
+
+              if (events.length === 0) {
+                console.log(\`No data found for year \${year}\`);
+                return;
+              }
+
+              const output = events.map(e => ({
+                Keterangan: e.summary,
+                Tanggal: e.start.date
+              }));
+
+              fs.writeFileSync(\`\${year}.json\`, JSON.stringify(output, null, 2));
+              console.log(\`Saved \${output.length} events to \${year}.json\`);
+            } catch (err) {
+              console.error(\`Failed to fetch for year \${year}:\`, err.message);
+            }
+          }
+
+          const now = dayjs();
+          const currentYear = now.year();
+          const nextYear = now.add(1, 'year').year();
+
+          (async () => {
+            await fetchAndSave(currentYear);
+            await fetchAndSave(nextYear);
+          })();
+          EOF
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add *.json
+          git diff --cached --quiet || git commit -m "Update holiday data"
+          git push
