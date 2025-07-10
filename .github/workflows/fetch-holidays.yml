@@ -25,13 +25,14 @@ jobs:
           npm install axios
           pip install hijri-converter
 
-      - name: Fetch Holidays via Google Calendar
+      - name: Fetch, Filter, Simpan
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           node <<'EOF'
           const fs = require('fs');
           const axios = require('axios');
+          const { execSync } = require('child_process');
 
           async function fetchHolidays(year) {
             const timeMin = `${year}-01-01T00:00:00Z`;
@@ -87,14 +88,34 @@ jobs:
 
             const folder = 'data';
             if (!fs.existsSync(folder)) fs.mkdirSync(folder);
-            const filepath = `${folder}/${year}.json`;
+            const filePath = `${folder}/${year}.json`;
 
             if (output.length > 0) {
-              fs.writeFileSync(filepath, JSON.stringify(output, null, 2));
-              console.log(`✅ Disimpan: ${filepath}`);
+              fs.writeFileSync(filePath, JSON.stringify(output, null, 2));
+              console.log(`✅ ${output.length} data disimpan di ${filePath}`);
             } else {
-              console.log(`⚠️ Tidak ada data, akan prediksi...`);
-              require('child_process').execSync(`python3 script/python.py ${year}`, { stdio: 'inherit' });
+              console.log("⚠️ Google Calendar kosong. Membuat tanggal tetap dan prediksi...");
+
+              // Tanggal Tetap Nasional
+              const fixed = [
+                { Keterangan: `Tahun Baru ${year}`, Tanggal: `${year}-01-01` },
+                { Keterangan: "Hari Buruh", Tanggal: `${year}-05-01` },
+                { Keterangan: "Hari Pancasila", Tanggal: `${year}-06-01` },
+                { Keterangan: `Proklamasi Kemerdekaan Ke-${proklamasiKe}`, Tanggal: `${year}-08-17` },
+                { Keterangan: "Natal", Tanggal: `${year}-12-25` },
+                { Keterangan: "Cuti Natal", Tanggal: `${year}-12-26` }
+              ];
+
+              fs.writeFileSync(filePath, JSON.stringify(fixed, null, 2));
+
+              // Tambahkan prediksi hijriah via Python
+              execSync(`python3 script/python.py ${year}`, { stdio: 'inherit' });
+
+              // Gabungkan hasil prediksi ke file
+              const prediksi = JSON.parse(fs.readFileSync(filePath));
+              const hasil = [...fixed, ...prediksi];
+              fs.writeFileSync(filePath, JSON.stringify(hasil, null, 2));
+              console.log(`📦 Hasil prediksi disimpan di ${filePath}`);
             }
           }
 
@@ -112,5 +133,5 @@ jobs:
           git config --global user.name github-actions[bot]
           git config --global user.email github-actions[bot]@users.noreply.github.com
           git add data/*.json
-          git diff --cached --quiet || git commit -m "Update hari libur (otomatis / prediksi)"
+          git diff --cached --quiet || git commit -m "Update hari libur (termasuk prediksi jika kosong)"
           git push
