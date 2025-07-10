@@ -1,13 +1,14 @@
-name: Fetch Hari Libur Indonesia (Google Calendar)
+name: Fetch Hari Libur Indonesia + Prediksi
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1' # Setiap hari Senin 00:00 UTC
+    - cron: '0 0 * * 1'
 
 jobs:
   fetch-holidays:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -18,9 +19,12 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: npm install axios
+        run: |
+          npm install axios
+          sudo apt-get install -y python3 python3-pip
+          pip3 install python-dateutil
 
-      - name: Fetch, filter, and save holidays
+      - name: Fetch and Save Holiday Data
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
@@ -28,7 +32,7 @@ jobs:
           const fs = require('fs');
           const axios = require('axios');
 
-          async function fetchHolidays(year) {
+          async function fetchAndFilter(year) {
             const timeMin = `${year}-01-01T00:00:00Z`;
             const timeMax = `${year}-12-31T23:59:59Z`;
             const calendarId = 'id.indonesian%23holiday@group.v.calendar.google.com';
@@ -72,7 +76,6 @@ jobs:
             for (const item of items) {
               const summary = item.summary || '';
               const tanggal = item.start?.date || '';
-
               for (const key in keywords) {
                 if (summary.includes(key)) {
                   output.push({
@@ -84,25 +87,61 @@ jobs:
               }
             }
 
-            const folder = 'data';
-            if (!fs.existsSync(folder)) fs.mkdirSync(folder);
-            fs.writeFileSync(`${folder}/${year}.json`, JSON.stringify(output, null, 2));
-            console.log(`✅ Saved ${output.length} holidays to ${folder}/${year}.json`);
+            if (!fs.existsSync('data')) fs.mkdirSync('data');
+            fs.writeFileSync(`data/${year}.json`, JSON.stringify(output, null, 2));
+            return output;
           }
 
           const thisYear = new Date().getFullYear();
           const nextYear = thisYear + 1;
 
-          (async () => {
-            await fetchHolidays(thisYear);
-            await fetchHolidays(nextYear);
-          })();
+          const thisYearData = await fetchAndFilter(thisYear);
+          const nextYearData = await fetchAndFilter(nextYear);
+
+          // Jika tahun depan kosong, simpan info untuk python
+          if (nextYearData.length === 0) {
+            fs.writeFileSync('temp_prev.json', JSON.stringify(thisYearData));
+            fs.writeFileSync('temp_year.txt', nextYear.toString());
+          }
           EOF
 
-      - name: Commit and push if changed
+      - name: Predict next year if empty
+        if: ${{ success() }}
+        run: |
+          if [ -f temp_prev.json ]; then
+            python3 <<EOF
+import json
+from datetime import datetime, timedelta
+from dateutil.parser import parse
+
+# Load previous year data and target year
+with open("temp_prev.json") as f:
+    data = json.load(f)
+
+with open("temp_year.txt") as f:
+    next_year = int(f.read().strip())
+
+prediksi = []
+for event in data:
+    tgl = parse(event["Tanggal"])
+    if tgl.year < next_year - 1: continue
+    # Acak 1 hari mundur untuk membuat simulasi prediksi
+    new_date = tgl.replace(year=next_year)
+    prediksi.append({
+        "Keterangan": f"{event['Keterangan']} (belum pasti)",
+        "Tanggal": new_date.strftime('%Y-%m-%d')
+    })
+
+with open(f"data/{next_year}.json", "w") as out:
+    json.dump(prediksi, out, indent=2)
+print(f"🔮 Prediksi {len(prediksi)} tanggal ditulis ke data/{next_year}.json")
+EOF
+          fi
+
+      - name: Commit and Push Changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data/*.json
-          git diff --cached --quiet || git commit -m "Update holiday JSON files"
+          git diff --cached --quiet || git commit -m "Update/predict hari libur tahun depan"
           git push
