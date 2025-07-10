@@ -10,22 +10,7 @@ const API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = 'id.indonesian%23holiday@group.v.calendar.google.com';
 
 const keywordFilter = [
-  'tahun baru',
-  'mikraj',
-  'imlek',
-  'nyepi',
-  'idul fitri',
-  'wafat',
-  'buruh',
-  'kenaikan',
-  'idul adha',
-  'waisak',
-  'pancasila',
-  'tahun baru islam',
-  'kemerdekaan',
-  'maulid',
-  'natal',
-  'cuti'
+
 ];
 
 function isRelevant(summary) {
