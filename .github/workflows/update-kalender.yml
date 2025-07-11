@@ -3,7 +3,7 @@ name: Update Hari Libur Nasional
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 1 1 *"  # Jalankan setiap 1 Januari
+    - cron: "0 0 1 1 *"  # setiap 1 Januari
 
 env:
   CALENDAR_ID: id.indonesian%23holiday@group.v.calendar.google.com
@@ -44,7 +44,7 @@ jobs:
             TIME_MAX="${YEAR}-12-31T23:59:59Z"
             FILE="data/${YEAR}.json"
             URL="https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${GOOGLE_API_KEY}&timeMin=${TIME_MIN}&timeMax=${TIME_MAX}&orderBy=startTime&singleEvents=true"
-            
+
             echo "🌐 Fetching from: $URL"
             RESPONSE=$(curl -s "$URL")
             ITEMS=$(echo "$RESPONSE" | jq '.items // []')
@@ -55,24 +55,25 @@ jobs:
               continue
             fi
 
-            echo "$ITEMS" | jq '[.[] |
-              {
-                summary: .summary,
-                date: (.start.date // .start.dateTime | split("T")[0])
-              }
-            ] | map(
-              select(
-                (.summary | test("^(?!.*(Cuti|Malam|Diwali)).*"; "i")) and
-                (.summary | test("Tahun Baru|Isra|Imlek|Nyepi|Idul Fitri|Idul Adha|Muharam|Maulid|Waisak|Paskah|Wafat|Kenaikan|Natal|Buruh|Pancasila|Proklamasi"; "i"))
-              ) |
-              {
-                Tanggal: .date,
-                Keterangan:
-                  (.summary
+            echo "$ITEMS" | jq -r --arg year "$YEAR" '
+              [.[] |
+                {
+                  summary: .summary,
+                  date: (.start.date // .start.dateTime | split("T")[0])
+                }
+              ] | map(
+                select(
+                  (.summary | test("^(?!.*(Cuti|Malam|Diwali)).*"; "i")) and
+                  (.summary | test("Tahun Baru|Isra|Imlek|Nyepi|Idul Fitri|Idul Adha|Muharam|Maulid|Waisak|Paskah|Wafat|Kenaikan|Natal|Buruh|Pancasila|Proklamasi"; "i"))
+                ) |
+                {
+                  Tanggal: .date,
+                  Keterangan: (
+                    .summary
                     | sub("Hari Tahun Baru.*?(\\d{4})?"; "Tahun Baru \(.date[0:4]) Masehi")
                     | sub("Isra.*?"; "Isra Mikraj Nabi Muhammad S.A.W.")
                     | sub("Tahun Baru Imlek"; "Tahun Baru Imlek \((.date[0:4] | tonumber + 551)) Kongzili")
-                    | sub("Nyepi.*?Saka (\\d{4})?"; "Hari Suci Nyepi (Tahun Baru Saka \((.date[0:4] | tonumber - 78)))")
+                    | sub("Nyepi.*?Saka.*?"; "Hari Suci Nyepi (Tahun Baru Saka \((.date[0:4] | tonumber - 78)))")
                     | sub("Idul Fitri.*?"; "Hari Raya Idul Fitri \((.date[0:4] | tonumber - 579)) Hijriyah")
                     | sub("Idul Adha.*?"; "Hari Raya Idul Adha \((.date[0:4] | tonumber - 579)) Hijriyah")
                     | sub("Satu Muharam.*?"; "1 Muharam Tahun Baru Islam \((.date[0:4] | tonumber - 578)) Hijriyah")
@@ -86,8 +87,9 @@ jobs:
                     | sub("Hari Lahir Pancasila"; "Hari Lahir Pancasila")
                     | sub("Hari Proklamasi.*?"; "Proklamasi Kemerdekaan Ke-\((.date[0:4] | tonumber - 1945))")
                   )
-              }
-            ]' > "$FILE"
+                }
+              ]
+            ' > "$FILE"
 
             echo "✅ Disimpan ke $FILE"
           done
