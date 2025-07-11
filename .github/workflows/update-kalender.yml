@@ -1,31 +1,27 @@
-name: Ambil Hari Libur Nasional
+name: Update Hari Libur Nasional
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 1 1 1 *" # setiap 1 Januari jam 08:00 WIB
+    - cron: "0 0 1 1 *"  # Setiap 1 Januari jam 07:00 WIB
 
 env:
-  CALENDAR_ID: id.indonesian#holiday@group.v.calendar.google.com
+  CALENDAR_ID: id.indonesian%23holiday@group.v.calendar.google.com  # encoded '#' jadi %23
 
 jobs:
-  generate:
+  update-libur:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        year: [${{ github.event.inputs.year || github.run_attempt }}]
-        include:
-          - year: ${{ github.event.inputs.year || format('{0}', fromJSON('["' + (github.run_number | toString) + '"]')[0]) }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -34,36 +30,38 @@ jobs:
         run: |
           pip install hijri-converter ephem lunardate pytz
 
-      - name: Ambil dan simpan hari libur
+      - name: Generate hari libur dari Google Calendar atau fallback ke script
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
-          YEARS=$(date +%Y)
-          NEXT=$(($(date +%Y)+1))
+          mkdir -p data
+          THIS_YEAR=$(date +%Y)
+          NEXT_YEAR=$(($THIS_YEAR + 1))
 
-          for YEAR in $YEARS $NEXT; do
-            echo "Mengambil data dari Google Calendar untuk tahun $YEAR..."
-
-            FILE="data/$YEAR.json"
-            mkdir -p data
-
+          for YEAR in $THIS_YEAR $NEXT_YEAR; do
+            echo "Memproses tahun $YEAR..."
             TIME_MIN="${YEAR}-01-01T00:00:00Z"
             TIME_MAX="${YEAR}-12-31T23:59:59Z"
+            FILE="data/${YEAR}.json"
 
-            RESPONSE=$(curl -s "https://www.googleapis.com/calendar/v3/calendars/${{ env.CALENDAR_ID }}/events?key=${{ secrets.GOOGLE_API_KEY }}&timeMin=${TIME_MIN}&timeMax=${TIME_MAX}&orderBy=startTime&singleEvents=true")
+            URL="https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${GOOGLE_API_KEY}&timeMin=${TIME_MIN}&timeMax=${TIME_MAX}&orderBy=startTime&singleEvents=true"
 
-            ITEMS=$(echo "$RESPONSE" | jq '.items')
+            echo "Fetching from: $URL"
+            RESPONSE=$(curl -s "$URL")
+            ITEMS=$(echo "$RESPONSE" | jq '.items // []')
 
             if [ "$ITEMS" = "[]" ]; then
-              echo "Data kosong, menggunakan fallback script Python untuk tahun $YEAR"
+              echo "Google Calendar kosong, pakai fallback script Python"
               python3 scripts/python.py "$YEAR"
             else
               echo "$ITEMS" | jq '[.[] | {Keterangan: .summary, Tanggal: .start.date}]' > "$FILE"
-              echo "Disimpan ke $FILE dari Google Calendar"
+              echo "Berhasil simpan ke $FILE dari Google Calendar"
             fi
           done
 
-      - name: Commit dan Push
+      - name: Commit dan Push hasil
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Update data hari libur dari Google Calendar (otomatis)"
+          commit_message: "Update otomatis hari libur nasional dari Google Calendar"
           branch: main
           file_pattern: 'data/*.json'
