@@ -1,139 +1,155 @@
-import json
-from datetime import date, timedelta, datetime
+#!/usr/bin/env python3
+import sys, json, os
+from datetime import datetime, timedelta, date
 from hijri_converter import convert
 import ephem
+import lunardate
+import pytz
 
-# Tanggal Tahun Baru Imlek (manual lookup)
-IMLEK_TANGGAL = {
-    2025: "2025-01-29",
-    2026: "2026-02-17",
-    2027: "2027-02-06",
-    2028: "2028-01-26",
-    2029: "2029-02-13",
-    2030: "2030-02-03"
-}
+WIB = pytz.timezone("Asia/Jakarta")
 
-# Libur Hijriah: (nama, hari, bulan)
-LIBUR_HIJRI = [
-    ("Isra Mikraj Nabi Muhammad", 27, 7),
-    ("Awal Ramadan", 1, 9),
-    ("Hari Raya Idul Fitri", 1, 10),
-    ("Hari Raya Idul Fitri", 2, 10),
-    ("Hari Raya Idul Adha", 10, 12),
-    ("Tahun Baru Islam", 1, 1),
-    ("Maulid Nabi Muhammad", 12, 3)
-]
+def to_date(pydate):
+    if isinstance(pydate, datetime):
+        dt = WIB.localize(pydate)
+        return dt.date().isoformat()
+    return pydate.isoformat()
 
-def tanggal_tetap(tahun: int):
+def libur_tetap(tahun):
     return [
-        {"Keterangan": f"Tahun Baru {tahun}", "Tanggal": f"{tahun}-01-01"},
-        {"Keterangan": "Hari Buruh", "Tanggal": f"{tahun}-05-01"},
-        {"Keterangan": "Hari Pancasila", "Tanggal": f"{tahun}-06-01"},
+        {"Keterangan": f"Tahun Baru {tahun} Masehi", "Tanggal": f"{tahun}-01-01"},
+        {"Keterangan": "Hari Buruh Internasional", "Tanggal": f"{tahun}-05-01"},
+        {"Keterangan": "Hari Lahir Pancasila", "Tanggal": f"{tahun}-06-01"},
         {"Keterangan": f"Proklamasi Kemerdekaan Ke-{tahun - 1945}", "Tanggal": f"{tahun}-08-17"},
-        {"Keterangan": "Natal", "Tanggal": f"{tahun}-12-25"}
+        {"Keterangan": "Kelahiran Yesus Kristus (Natal)", "Tanggal": f"{tahun}-12-25"},
     ]
 
-def prediksi_waisak(tahun: int):
-    try:
-        start = ephem.Date(f"{tahun}/3/21")
-        full_moons = []
-        while len(full_moons) < 2:
-            next_full = ephem.next_full_moon(start)
-            local_date = ephem.localtime(next_full).date()
-            full_moons.append(local_date)
-            start = ephem.Date(local_date + timedelta(days=1))
+def hijri_fix(hijri, koreksi=1):
+    g = hijri.to_gregorian()
+    return to_date(datetime(g.year, g.month, g.day) + timedelta(days=koreksi))
 
-        tanggal_waisak = full_moons[1].isoformat()
-        tahun_buddha = tahun + 544
-        return {
-            "Keterangan": f"Hari Raya Waisak {tahun_buddha} (prakiraan)",
-            "Tanggal": tanggal_waisak
-        }
-    except Exception as e:
-        print(f"❌ Gagal prediksi Waisak: {e}")
-        return None
+def hitung_nyepi(tahun):
+    obs = ephem.Observer()
+    obs.lat, obs.lon = '-8.65', '115.21'
+    nm = ephem.next_new_moon(f'{tahun}/3/1')
+    d = nm.datetime().replace(tzinfo=pytz.utc).astimezone(WIB)
+    return date(d.year, d.month, d.day)
 
-def prediksi_hijriyah(tahun: int):
+def hitung_waisak(tahun):
+    obs = ephem.Observer()
+    obs.lat, obs.lon = '-6.2', '106.8'
+    fm = ephem.next_full_moon(f'{tahun}/5/1')
+    d = fm.datetime().replace(tzinfo=pytz.utc).astimezone(WIB)
+    return date(d.year, d.month, d.day)
+
+def hitung_paskah(tahun):
+    a = tahun % 19
+    b = tahun // 100
+    c = tahun % 100
+    d = b // 4
+    e = b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i = c // 4
+    k = c % 4
+    l = (32 + 2*e + 2*i - h - k) % 7
+    m = (a + 11*h + 22*l) // 451
+    bulan = (h + l - 7*m + 114) // 31
+    hari = ((h + l - 7*m + 114) % 31) + 1
+    return datetime(tahun, bulan, hari)
+
+def libur_tidaktetap(tahun):
     hasil = []
-    for nama, hari, bulan in LIBUR_HIJRI:
-        tahun_hijriyah = (tahun - 579) if bulan >= 7 else (tahun - 578)
-        try:
-            tgl = convert.Hijri(tahun_hijriyah, bulan, hari).to_gregorian()
-            tgl_masehi = tgl.isoformat()
 
-            if not tgl_masehi.startswith(str(tahun)):
-                for delta in [-1, 1]:
-                    try:
-                        tgl_alt = convert.Hijri(tahun_hijriyah + delta, bulan, hari).to_gregorian()
-                        if tgl_alt.year == tahun:
-                            tgl_masehi = tgl_alt.isoformat()
-                            break
-                    except:
-                        continue
+    hasil.append({
+        "Keterangan": "Isra Mikraj Nabi Muhammad S.A.W.",
+        "Tanggal": hijri_fix(convert.Hijri(tahun - 579, 7, 27), koreksi=0)
+    })
 
-            if tgl_masehi.startswith(str(tahun)):
-                hasil.append({
-                    "Keterangan": f"{nama} (prakiraan)",
-                    "Tanggal": tgl_masehi
-                })
-        except Exception as e:
-            print(f"❌ Gagal konversi {nama} {hari}/{bulan}/{tahun_hijriyah}: {e}")
+    hasil.append({
+        "Keterangan": f"1 Muharam Tahun Baru Islam {tahun - 578} Hijriyah",
+        "Tanggal": hijri_fix(convert.Hijri(tahun - 578, 1, 1), koreksi=1)
+    })
+
+    hasil.append({
+        "Keterangan": "Maulid Nabi Muhammad S.A.W.",
+        "Tanggal": hijri_fix(convert.Hijri(tahun - 578, 3, 12), koreksi=1)
+    })
+
+    fitri1 = convert.Hijri(tahun - 579, 10, 1).to_gregorian()
+    fitri1 = datetime(fitri1.year, fitri1.month, fitri1.day) + timedelta(days=1)
+    hasil.append({
+        "Keterangan": f"Hari Raya Idul Fitri {tahun - 579} Hijriyah",
+        "Tanggal": to_date(fitri1)
+    })
+    hasil.append({
+        "Keterangan": f"Hari Raya Idul Fitri {tahun - 579} Hijriyah",
+        "Tanggal": to_date(fitri1 + timedelta(days=1))
+    })
+
+    hasil.append({
+        "Keterangan": f"Hari Raya Idul Adha {tahun - 579} Hijriyah",
+        "Tanggal": hijri_fix(convert.Hijri(tahun - 579, 12, 10), koreksi=0)
+    })
+
+    cny = lunardate.LunarDate(tahun, 1, 1).toSolarDate()
+    hasil.append({
+        "Keterangan": f"Tahun Baru Imlek {tahun + 551} Kongzili",
+        "Tanggal": to_date(cny)
+    })
+
+    saka_year = tahun - 78
+    hasil.append({
+        "Keterangan": f"Hari Suci Nyepi (Tahun Baru Saka {saka_year})",
+        "Tanggal": to_date(hitung_nyepi(tahun))
+    })
+
+    waisak_date = hitung_waisak(tahun)
+    buddhist_year = waisak_date.year + 544
+    hasil.append({
+        "Keterangan": f"Hari Raya Waisak {buddhist_year} BE",
+        "Tanggal": to_date(waisak_date)
+    })
+
+    paskah = hitung_paskah(tahun)
+    hasil.append({
+        "Keterangan": "Wafat Yesus Kristus",
+        "Tanggal": to_date(paskah - timedelta(days=2))
+    })
+    hasil.append({
+        "Keterangan": "Hari Paskah (Kebangkitan Yesus Kristus)",
+        "Tanggal": to_date(paskah)
+    })
+    hasil.append({
+        "Keterangan": "Kenaikan Yesus Kristus",
+        "Tanggal": to_date(paskah + timedelta(days=39))
+    })
+
     return hasil
 
-def tambah_imlek(tahun: int):
-    hasil = []
-    if tahun in IMLEK_TANGGAL:
-        imlek = datetime.fromisoformat(IMLEK_TANGGAL[tahun])
-        hasil.append({
-            "Keterangan": f"Tahun Baru Imlek {tahun + 551} Kongzili",
-            "Tanggal": imlek.date().isoformat()
-        })
-        hasil.append({
-            "Keterangan": "Cuti Imlek",
-            "Tanggal": (imlek - timedelta(days=1)).date().isoformat()
-        })
-    return hasil
+def main():
+    tahun = int(sys.argv[1]) if len(sys.argv) > 1 else datetime.now(WIB).year + 1
+    semua_libur = libur_tetap(tahun) + libur_tidaktetap(tahun)
+    semua_libur.sort(key=lambda x: x["Tanggal"])
+    output = semua_libur
 
-def prediksi_cuti_bersama(tahun: int, libur_list: list):
-    hasil = []
-    for libur in libur_list:
-        keterangan = libur["Keterangan"]
-        tgl = datetime.fromisoformat(libur["Tanggal"])
+    # Path ke folder 'data' di luar folder script
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.abspath(os.path.join(base_dir, "..", "data"))
+    os.makedirs(data_dir, exist_ok=True)
 
-        if "Idul Fitri" in keterangan:
-            if "1" in keterangan:
-                hasil.append({
-                    "Keterangan": "Cuti Bersama Idul Fitri (prakiraan)",
-                    "Tanggal": (tgl - timedelta(days=1)).isoformat()
-                })
-            if "2" in keterangan:
-                hasil.append({
-                    "Keterangan": "Cuti Bersama Idul Fitri (prakiraan)",
-                    "Tanggal": (tgl + timedelta(days=1)).isoformat()
-                })
-        elif "Natal" in keterangan:
-            hasil.append({
-                "Keterangan": "Cuti Bersama Natal (prakiraan)",
-                "Tanggal": (tgl - timedelta(days=1)).isoformat()
-            })
-    return hasil
+    filepath = os.path.join(data_dir, f"{tahun}.json")
 
-def prediksi_libur_tidak_tetap(tahun: int):
-    hasil = []
-    hasil += tanggal_tetap(tahun)
-    hasil += tambah_imlek(tahun)
-    hasil += prediksi_hijriyah(tahun)
-    waisak = prediksi_waisak(tahun)
-    if waisak: hasil.append(waisak)
-    hasil += prediksi_cuti_bersama(tahun, hasil)
-    hasil.sort(key=lambda x: datetime.fromisoformat(x["Tanggal"]))
-    return hasil
+    if os.path.exists(filepath):
+        print(f"Mengganti file: {filepath}")
+    else:
+        print(f"Membuat file baru: {filepath}")
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+
+    # Cetak juga ke layar
+    print(json.dumps(output, indent=2, ensure_ascii=False))
 
 if __name__ == "__main__":
-    import sys
-    tahun = int(sys.argv[1]) if len(sys.argv) > 1 else date.today().year + 1
-    hasil = prediksi_libur_tidak_tetap(tahun)
-    output_file = f"data/{tahun}.json"
-    with open(output_file, "w") as f:
-        json.dump(hasil, f, indent=2, ensure_ascii=False)
-    print(f"✅ Data libur {tahun} disimpan di {output_file}")
+    main()
