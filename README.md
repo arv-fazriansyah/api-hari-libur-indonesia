@@ -1,4 +1,4 @@
-# API Hari Libur Nasional Indonesia
+# API Hari Libur & Cuti Bersama Nasional Indonesia
 
 **Repository**: [arv-fazriansyah/api-hari-libur-indonesia](https://github.com/arv-fazriansyah/api-hari-libur-indonesia)
 
