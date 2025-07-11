@@ -4,7 +4,7 @@
 
 ## Deskripsi
 
-API ini menyajikan data hari libur nasional Indonesia dalam format JSON. Data diperbarui otomatis setiap hari melalui GitHub Actions dengan prioritas sumber dari Google Calendar resmi. Jika Google Calendar tidak menyediakan data, akan digenerate menggunakan skrip Python prediksi astronomi dan konversi Hijriah, Saka, Kongzili.
+API ini menyajikan data hari libur nasional dan cuti bersama di Indonesia dalam format JSON yang mudah digunakan oleh aplikasi. Data ini diperbarui otomatis setiap hari menggunakan GitHub Actions, dengan prioritas pengambilan dari Google Calendar resmi pemerintah Indonesia. Bila Google Calendar tidak menyediakan data untuk tahun tertentu, sistem akan otomatis menghasilkan data prediksi menggunakan skrip Python berbasis astronomi dan konversi kalender Hijriah, Saka, dan Kongzili untuk menjaga akurasi.
 
 ## Endpoints
 
