@@ -26,7 +26,7 @@ function normalize(summary, tahun) {
     return `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
   }
 
-  if (/hari tahun baru.*\d{4}/i.test(summary)) return `Tahun Baru ${tahun} Masehi`;
+  if (/hari tahun baru/i.test(summary)) return `Tahun Baru ${tahun} Masehi`;
   if (/imlek/i.test(summary)) return `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
   if (/nyepi/i.test(summary)) return `Hari Suci Nyepi (Tahun Baru Saka ${saka(tahun)})`;
   if (/isra/i.test(summary)) return "Isra Mikraj Nabi Muhammad S.A.W.";
