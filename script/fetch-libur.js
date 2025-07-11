@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
+const { spawnSync } = require("child_process");
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
@@ -16,34 +17,55 @@ const buddhist = (tahun) => tahun + 544;
 
 function normalize(summary, tahun) {
   const lower = summary.toLowerCase();
+  const isBelumPasti = /\(belum pasti\)/i.test(summary) || lower.includes("belum pasti");
+
+  let result = null;
 
   if (lower.includes("cuti")) {
-    // Tambah deskripsi cutinya
-    if (lower.includes("idul fitri")) return `Cuti Bersama Hari Raya Idul Fitri`;
-    if (lower.includes("kenaikan")) return "Cuti Bersama Kenaikan Yesus Kristus";
-    if (lower.includes("natal")) return "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
-    if (lower.includes("waisak")) return `Cuti Bersama Waisak`;
-    return `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
+    if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri ${hijriyah[tahun]} Hijriyah`;
+    else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
+    else if (lower.includes("natal")) result = "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
+    else if (lower.includes("waisak")) result = `Cuti Bersama Waisak ${buddhist(tahun)} BE`;
+    else result = `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
+  } else if (/hari tahun baru/i.test(summary)) {
+    result = `Tahun Baru ${tahun} Masehi`;
+  } else if (/imlek/i.test(summary)) {
+    result = `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
+  } else if (/nyepi/i.test(summary)) {
+    result = `Hari Suci Nyepi (Tahun Baru Saka ${saka(tahun)})`;
+  } else if (/isra/i.test(summary)) {
+    result = "Isra Mikraj Nabi Muhammad S.A.W.";
+  } else if (/idul fitri/i.test(summary)) {
+    result = `Hari Raya Idul Fitri ${hijriyah[tahun]} Hijriyah`;
+  } else if (/idul adha/i.test(summary)) {
+    result = `Hari Raya Idul Adha ${hijriyah[tahun]} Hijriyah`;
+  } else if (/maulid/i.test(summary)) {
+    result = "Maulid Nabi Muhammad S.A.W.";
+  } else if (/muharam/.test(lower)) {
+    result = `1 Muharam Tahun Baru Islam ${hijriyah[tahun] + 1} Hijriyah`;
+  } else if (/waisak/i.test(summary)) {
+    result = `Hari Raya Waisak ${buddhist(tahun)} BE`;
+  } else if (/wafat/i.test(summary)) {
+    result = "Wafat Yesus Kristus";
+  } else if (/paskah/i.test(summary)) {
+    result = "Hari Paskah (Kebangkitan Yesus Kristus)";
+  } else if (/kenaikan/i.test(summary)) {
+    result = "Kenaikan Yesus Kristus";
+  } else if (/hari raya natal/i.test(summary) || /natal/.test(summary)) {
+    result = "Kelahiran Yesus Kristus (Natal)";
+  } else if (/buruh/i.test(summary)) {
+    result = "Hari Buruh Internasional";
+  } else if (/pancasila/i.test(summary)) {
+    result = "Hari Lahir Pancasila";
+  } else if (/kemerdekaan/i.test(summary)) {
+    result = `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
   }
 
-  if (/hari tahun baru/i.test(summary)) return `Tahun Baru ${tahun} Masehi`;
-  if (/imlek/i.test(summary)) return `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
-  if (/nyepi/i.test(summary)) return `Hari Suci Nyepi (Tahun Baru Saka ${saka(tahun)})`;
-  if (/isra/i.test(summary)) return "Isra Mikraj Nabi Muhammad S.A.W.";
-  if (/idul fitri/i.test(summary)) return `Hari Raya Idul Fitri ${hijriyah[tahun]} Hijriyah`;
-  if (/idul adha/i.test(summary)) return `Hari Raya Idul Adha ${hijriyah[tahun]} Hijriyah`;
-  if (/maulid/i.test(summary)) return "Maulid Nabi Muhammad S.A.W.";
-  if (/muharam/i.test(summary)) return `1 Muharam Tahun Baru Islam ${hijriyah[tahun] + 1} Hijriyah`;
-  if (/waisak/i.test(summary)) return `Hari Raya Waisak ${buddhist(tahun)} BE`;
-  if (/wafat/i.test(summary)) return "Wafat Yesus Kristus";
-  if (/paskah/i.test(summary)) return "Hari Paskah (Kebangkitan Yesus Kristus)";
-  if (/kenaikan/i.test(summary)) return "Kenaikan Yesus Kristus";
-  if (/hari raya natal/i.test(summary)) return "Kelahiran Yesus Kristus (Natal)";
-  if (/buruh/i.test(summary)) return "Hari Buruh Internasional";
-  if (/pancasila/i.test(summary)) return "Hari Lahir Pancasila";
-  if (/kemerdekaan/i.test(summary)) return `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
+  if (result && isBelumPasti && !result.includes("(belum pasti)")) {
+    result += " (belum pasti)";
+  }
 
-  return null;
+  return result;
 }
 
 function fetchFromGoogleCalendar(tahun) {
@@ -94,7 +116,6 @@ function fetchFromGoogleCalendar(tahun) {
     } catch (err) {
       console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
       console.log(`🔁 Fallback ke script/python.py ${tahun}`);
-      const { spawnSync } = require("child_process");
       const res = spawnSync("python3", ["script/python.py", tahun], {
         stdio: "inherit"
       });
