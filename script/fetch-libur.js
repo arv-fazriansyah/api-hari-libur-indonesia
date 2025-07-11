@@ -26,7 +26,7 @@ function normalize(summary, tahun) {
     return `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
   }
 
-  if (/tahun baru.*\d{4}/i.test(summary)) return `Tahun Baru ${tahun} Masehi`;
+  if (/hari tahun baru.*\d{4}/i.test(summary)) return `Tahun Baru ${tahun} Masehi`;
   if (/imlek/i.test(summary)) return `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
   if (/nyepi/i.test(summary)) return `Hari Suci Nyepi (Tahun Baru Saka ${saka(tahun)})`;
   if (/isra/i.test(summary)) return "Isra Mikraj Nabi Muhammad S.A.W.";
@@ -38,7 +38,7 @@ function normalize(summary, tahun) {
   if (/wafat/i.test(summary)) return "Wafat Yesus Kristus";
   if (/paskah/i.test(summary)) return "Hari Paskah (Kebangkitan Yesus Kristus)";
   if (/kenaikan/i.test(summary)) return "Kenaikan Yesus Kristus";
-  if (/natal/i.test(summary)) return "Kelahiran Yesus Kristus (Natal)";
+  if (/hari raya natal/i.test(summary)) return "Kelahiran Yesus Kristus (Natal)";
   if (/buruh/i.test(summary)) return "Hari Buruh Internasional";
   if (/pancasila/i.test(summary)) return "Hari Lahir Pancasila";
   if (/kemerdekaan/i.test(summary)) return `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
