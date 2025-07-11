@@ -15,6 +15,10 @@ export default function handler(req, res) {
   }
 
   const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+
+  res.setHeader("Content-Type", "application/json");
   res.setHeader("Cache-Control", "s-maxage=86400");
-  return res.status(200).json(data);
+
+  // Pretty print JSON
+  res.status(200).end(JSON.stringify(data, null, 2));
 }
