@@ -30,7 +30,7 @@ jobs:
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
-          node scripts/fetch-libur.js || python3 script/python.py
+          node ../scripts/fetch-libur.js || python3 ../script/python.py
 
       - name: Commit hasil
         uses: stefanzweifel/git-auto-commit-action@v5
