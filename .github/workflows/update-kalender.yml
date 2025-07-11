@@ -1,9 +1,9 @@
 name: Update Hari Libur Nasional
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "0 0 1 1 *"  # 1 Januari
+    - cron: '0 2 * * *'  # Setiap hari jam 09:00 WIB (02:00 UTC)
+  workflow_dispatch:     # Bisa juga dijalankan manual
 
 jobs:
   update:
