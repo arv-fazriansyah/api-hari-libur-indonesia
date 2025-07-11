@@ -1,6 +1,6 @@
 # API Hari Libur Nasional Indonesia
 
-**Repository**: [arv-fazriansyah/hari-libur-nasional](https://github.com/arv-fazriansyah/hari-libur-nasional)
+**Repository**: [arv-fazriansyah/api-hari-libur-indonesia](https://github.com/arv-fazriansyah/api-hari-libur-indonesia)
 
 ## Deskripsi
 
@@ -10,13 +10,13 @@ API ini menyajikan data hari libur nasional dan cuti bersama di Indonesia dalam 
 
 * **Via GitHub Pages**
 
-  * [https://arv-fazriansyah.github.io/hari-libur-nasional/data/2025.json](https://arv-fazriansyah.github.io/hari-libur-nasional/data/2025.json)
-  * [https://arv-fazriansyah.github.io/hari-libur-nasional/data/2026.json](https://arv-fazriansyah.github.io/hari-libur-nasional/data/2026.json)
+  * [https://arv-fazriansyah.github.io/api-hari-libur-indonesia/data/2025.json](https://arv-fazriansyah.github.io/api-hari-libur-indonesia/data/2025.json)
+  * [https://arv-fazriansyah.github.io/api-hari-libur-indonesia/data/2026.json](https://arv-fazriansyah.github.io/api-hari-libur-indonesia/data/2026.json)
 
 * **Via jsDelivr CDN**
 
-  * [https://cdn.jsdelivr.net/gh/arv-fazriansyah/hari-libur-nasional@main/data/2025.json](https://cdn.jsdelivr.net/gh/arv-fazriansyah/hari-libur-nasional@main/data/2025.json)
-  * [https://cdn.jsdelivr.net/gh/arv-fazriansyah/hari-libur-nasional@main/data/2026.json](https://cdn.jsdelivr.net/gh/arv-fazriansyah/hari-libur-nasional@main/data/2026.json)
+  * [https://cdn.jsdelivr.net/gh/arv-fazriansyah/api-hari-libur-indonesia@main/data/2025.json](https://cdn.jsdelivr.net/gh/arv-fazriansyah/api-hari-libur-indonesia@main/data/2025.json)
+  * [https://cdn.jsdelivr.net/gh/arv-fazriansyah/api-hari-libur-indonesia@main/data/2026.json](https://cdn.jsdelivr.net/gh/arv-fazriansyah/api-hari-libur-indonesia@main/data/2026.json)
 
 ## Contoh Respons
 
@@ -36,7 +36,7 @@ API ini menyajikan data hari libur nasional dan cuti bersama di Indonesia dalam 
 ## Penggunaan
 
 ```js
-fetch('https://cdn.jsdelivr.net/gh/arv-fazriansyah/hari-libur-nasional@main/data/2025.json')
+fetch('https://cdn.jsdelivr.net/gh/arv-fazriansyah/api-hari-libur-indonesia@main/data/2025.json')
   .then(res => res.json())
   .then(data => console.log(data));
 ```
