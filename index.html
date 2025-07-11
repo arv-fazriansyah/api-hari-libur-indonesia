@@ -1,10 +1,56 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Hello</title>
-  </head>
-  <body>
-    <h1>Hello World</h1>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API Hari Libur Nasional Indonesia - JSON Otomatis Terbaru</title>
+  <meta name="description" content="API hari libur nasional Indonesia dalam format JSON, diupdate otomatis setiap tahun. Mudah digunakan untuk aplikasi kalender, sekolah, absensi, dan lainnya.">
+  <meta name="keywords" content="API Hari Libur, Hari Libur Nasional Indonesia, Kalender Libur JSON, Hari Besar Indonesia, API JSON Hari Libur, kalender 2025 Indonesia, API kalender Indonesia">
+  <meta name="author" content="arv-fazriansyah">
+  <link rel="canonical" href="https://arv-fazriansyah.github.io/hari-libur-nasional/">
+</head>
+<body>
+  <h1>API Hari Libur Nasional Indonesia</h1>
+
+  <p><strong>API JSON</strong> ini menyediakan daftar <strong>hari libur nasional Indonesia</strong> untuk tahun berjalan dan tahun berikutnya. Data bersumber dari <em>Google Calendar resmi</em> dan fallback ke prediksi akurat dengan skrip Python jika data kosong.</p>
+
+  <h2>🔗 Contoh Endpoint</h2>
+  <ul>
+    <li>👉 <code>https://arv-fazriansyah.github.io/hari-libur-nasional/data/2025.json</code></li>
+    <li>👉 <code>https://arv-fazriansyah.github.io/hari-libur-nasional/data/2026.json</code></li>
+  </ul>
+
+  <h2>📦 Format JSON</h2>
+  <pre><code>[
+  {
+    "Keterangan": "Tahun Baru 2025 Masehi",
+    "Tanggal": "2025-01-01"
+  },
+  {
+    "Keterangan": "Hari Raya Idul Fitri 1446 Hijriyah",
+    "Tanggal": "2025-03-31"
+  }
+  ...
+]</code></pre>
+
+  <h2>📅 Pembaruan Otomatis</h2>
+  <ul>
+    <li>Update setiap hari via GitHub Actions</li>
+    <li>Data resmi dari Google Calendar jika tersedia</li>
+    <li>Jika kosong, data diisi otomatis dari prediksi berbasis kalender Hijriah, Saka, Kongzili, dan astronomi</li>
+  </ul>
+
+  <h2>💡 Cara Penggunaan</h2>
+  <ul>
+    <li>Cocok untuk aplikasi <strong>kalender digital, sekolah, kehadiran, payroll, dan sistem cuti</strong></li>
+    <li>Ambil data libur sesuai tahun dengan <code>fetch</code>, <code>axios</code>, atau <code>curl</code></li>
+  </ul>
+
+  <h2>📌 Informasi Tambahan</h2>
+  <p>Repositori publik tersedia di <a href="https://github.com/arv-fazriansyah/hari-libur-nasional" target="_blank">GitHub</a> dan disajikan melalui GitHub Pages.</p>
+
+  <footer>
+    <p>© 2025 arv-fazriansyah – Data dilisensikan bebas pakai untuk keperluan non-komersial.</p>
+  </footer>
+</body>
 </html>
