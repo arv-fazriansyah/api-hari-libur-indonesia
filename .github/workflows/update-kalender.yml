@@ -22,8 +22,9 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install dependencies (Node.js & Python)
         run: |
+          npm install hijri-date
           pip install hijri-converter ephem lunardate pytz
 
       - name: Jalankan fetch libur (Google Calendar)
