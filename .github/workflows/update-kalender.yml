@@ -3,10 +3,10 @@ name: Update Hari Libur Nasional
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 1 1 *"  # Setiap 1 Januari jam 07:00 WIB
+    - cron: "0 0 1 1 *"  # Setiap 1 Januari jam 07:00 WIB (UTC)
 
 env:
-  CALENDAR_ID: id.indonesian%23holiday@group.v.calendar.google.com  # encoded '#' jadi %23
+  CALENDAR_ID: id.indonesian%23holiday@group.v.calendar.google.com  # '#' harus di-encode sebagai %23
 
 jobs:
   update-libur:
@@ -39,29 +39,34 @@ jobs:
           NEXT_YEAR=$(($THIS_YEAR + 1))
 
           for YEAR in $THIS_YEAR $NEXT_YEAR; do
-            echo "Memproses tahun $YEAR..."
+            echo "📅 Memproses tahun $YEAR..."
             TIME_MIN="${YEAR}-01-01T00:00:00Z"
             TIME_MAX="${YEAR}-12-31T23:59:59Z"
             FILE="data/${YEAR}.json"
 
             URL="https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${GOOGLE_API_KEY}&timeMin=${TIME_MIN}&timeMax=${TIME_MAX}&orderBy=startTime&singleEvents=true"
 
-            echo "Fetching from: $URL"
+            echo "🌐 Fetching from: $URL"
             RESPONSE=$(curl -s "$URL")
             ITEMS=$(echo "$RESPONSE" | jq '.items // []')
 
             if [ "$ITEMS" = "[]" ]; then
-              echo "Google Calendar kosong, pakai fallback script Python"
-              python3 scripts/python.py "$YEAR"
+              echo "⚠️  Google Calendar kosong. Gunakan fallback script Python: script/python.py"
+              if [ -f script/python.py ]; then
+                python3 script/python.py "$YEAR"
+              else
+                echo "❌ Fallback script tidak ditemukan: script/python.py"
+                exit 1
+              fi
             else
               echo "$ITEMS" | jq '[.[] | {Keterangan: .summary, Tanggal: .start.date}]' > "$FILE"
-              echo "Berhasil simpan ke $FILE dari Google Calendar"
+              echo "✅ Disimpan ke $FILE dari Google Calendar"
             fi
           done
 
       - name: Commit dan Push hasil
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Update otomatis hari libur nasional dari Google Calendar"
+          commit_message: "🔄 Update otomatis hari libur nasional dari Google Calendar"
           branch: main
           file_pattern: 'data/*.json'
