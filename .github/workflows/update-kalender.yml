@@ -1,115 +1,27 @@
-name: Update Hari Libur Nasional
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 0 1 1 *"  # Tiap 1 Januari jam 07:00 WIB
-
-env:
-  CALENDAR_ID: id.indonesian%23holiday@group.v.calendar.google.com  # '#' di-encode
-
-jobs:
-  update-libur:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python dependencies
-        run: |
-          pip install hijri-converter ephem lunardate pytz
-
-      - name: Generate hari libur nasional
-        env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        run: |
-          mkdir -p data
-          THIS_YEAR=$(date +%Y)
-          NEXT_YEAR=$(($THIS_YEAR + 1))
-
-          for YEAR in $THIS_YEAR $NEXT_YEAR; do
-            echo "📅 Memproses tahun $YEAR..."
-            TIME_MIN="${YEAR}-01-01T00:00:00Z"
-            TIME_MAX="${YEAR}-12-31T23:59:59Z"
-            FILE="data/${YEAR}.json"
-
-            URL="https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${GOOGLE_API_KEY}&timeMin=${TIME_MIN}&timeMax=${TIME_MAX}&orderBy=startTime&singleEvents=true"
-
-            echo "🌐 Fetching from: $URL"
-            RESPONSE=$(curl -s "$URL")
-            ITEMS=$(echo "$RESPONSE" | jq '.items // []')
-
-            if [ "$ITEMS" = "[]" ]; then
-              echo "⚠️  Google Calendar kosong. Menjalankan fallback script."
-              if [ -f script/python.py ]; then
-                python3 script/python.py "$YEAR"
-              else
-                echo "❌ Fallback script tidak ditemukan: script/python.py"
-                exit 1
-              fi
-            else
-              echo "$ITEMS" | jq '[.[] |
-                {
-                  Keterangan: .summary,
-                  Tanggal: .start.date
-                } |
-                select(
-                  .Keterangan |
-                  test("Tahun Baru"; "i") or
-                  test("Imlek"; "i") or
-                  test("Nyepi"; "i") or
-                  test("Idul Fitri"; "i") or
-                  test("Idul Adha"; "i") or
-                  test("Isra Mikraj"; "i") or
-                  test("Maulid Nabi"; "i") or
-                  test("Muharam"; "i") or
-                  test("Waisak"; "i") or
-                  test("Paskah"; "i") or
-                  test("Kenaikan Yesus"; "i") or
-                  test("Wafat Yesus"; "i") or
-                  test("Natal"; "i") or
-                  test("Hari Buruh"; "i") or
-                  test("Hari Lahir Pancasila"; "i") or
-                  test("Kemerdekaan"; "i")
-                ) |
-                .Keterangan |=
-                  sub("Tahun Baru.*?(\\d{4})"; "Tahun Baru \\1 Masehi") |
-                  sub("Isra.*?"; "Isra Mikraj Nabi Muhammad S.A.W.") |
-                  sub("Imlek.*?(\\d{4})"; "Tahun Baru Imlek \\1 Kongzili") |
-                  sub("Nyepi.*?(\\d{4})"; "Hari Suci Nyepi (Tahun Baru Saka \\1)") |
-                  sub("Idul Fitri.*?(\\d{4})"; "Hari Raya Idul Fitri \\1 Hijriyah") |
-                  sub("Idul Adha.*?(\\d{4})"; "Hari Raya Idul Adha \\1 Hijriyah") |
-                  sub("Maulid.*?"; "Maulid Nabi Muhammad S.A.W.") |
-                  sub("Muharam.*?(\\d{4})"; "1 Muharam Tahun Baru Islam \\1 Hijriyah") |
-                  sub("Waisak.*?(\\d{4})"; "Hari Raya Waisak \\1 BE") |
-                  sub("Wafat.*?"; "Wafat Yesus Kristus") |
-                  sub("Paskah.*?"; "Hari Paskah (Kebangkitan Yesus Kristus)") |
-                  sub("Kenaikan.*?"; "Kenaikan Yesus Kristus") |
-                  sub("Natal.*?"; "Kelahiran Yesus Kristus (Natal)") |
-                  sub("Hari Buruh.*?"; "Hari Buruh Internasional") |
-                  sub("Lahir Pancasila.*?"; "Hari Lahir Pancasila") |
-                  sub("Kemerdekaan.*?(\\d{1,2})"; "Proklamasi Kemerdekaan Ke-\\1")
-              ]' > "$FILE"
-
-              echo "✅ Disimpan ke $FILE dari Google Calendar (terfilter)"
-            fi
-          done
-
-      - name: Commit dan Push hasil
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "🔄 Update otomatis hari libur nasional dari Google Calendar"
-          branch: main
-          file_pattern: 'data/*.json'
-          push_options: '--force'
+echo "$ITEMS" | jq '[.[] |
+  {
+    Keterangan: .summary,
+    Tanggal: (.start.date // .start.dateTime | split("T")[0])
+  } |
+  select(
+    (.Keterangan | test("^(?!.*(Cuti|Malam|Diwali)).*"; "i")) and
+    (.Keterangan | test("Tahun Baru|Isra|Imlek|Nyepi|Idul Fitri|Idul Adha|Muharam|Maulid|Waisak|Paskah|Wafat|Kenaikan|Natal|Buruh|Pancasila|Proklamasi"; "i"))
+  ) |
+  .Keterangan |=
+    sub("Hari Tahun Baru.*?(\\d{4})?"; "Tahun Baru \($Tanggal[0:4]) Masehi") |
+    sub("Isra.*?"; "Isra Mikraj Nabi Muhammad S.A.W.") |
+    sub("Tahun Baru Imlek"; "Tahun Baru Imlek \($Tanggal[0:4] | tonumber + 551) Kongzili") |
+    sub("Nyepi.*?Saka (\\d{4})?"; "Hari Suci Nyepi (Tahun Baru Saka \($Tanggal[0:4] | tonumber - 78))") |
+    sub("Idul Fitri.*?"; "Hari Raya Idul Fitri \($Tanggal[0:4] | tonumber - 579) Hijriyah") |
+    sub("Idul Adha.*?"; "Hari Raya Idul Adha \($Tanggal[0:4] | tonumber - 579) Hijriyah") |
+    sub("Satu Muharam.*?"; "1 Muharam Tahun Baru Islam \($Tanggal[0:4] | tonumber - 578) Hijriyah") |
+    sub("Maulid.*?"; "Maulid Nabi Muhammad S.A.W.") |
+    sub("Waisak.*?"; "Hari Raya Waisak \($Tanggal[0:4] | tonumber + 544) BE") |
+    sub("Wafat.*?"; "Wafat Yesus Kristus") |
+    sub("Hari Paskah.*?"; "Hari Paskah (Kebangkitan Yesus Kristus)") |
+    sub("Kenaikan.*?"; "Kenaikan Yesus Kristus") |
+    sub("Hari Raya Natal"; "Kelahiran Yesus Kristus (Natal)") |
+    sub("Hari Buruh.*?"; "Hari Buruh Internasional") |
+    sub("Hari Lahir Pancasila"; "Hari Lahir Pancasila") |
+    sub("Hari Proklamasi.*?"; "Proklamasi Kemerdekaan Ke-\($Tanggal[0:4] | tonumber - 1945)")
+]' > "$FILE"
