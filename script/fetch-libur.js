@@ -19,7 +19,7 @@ function normalize(summary, tahun) {
 
   if (lower.includes("cuti")) {
     // Tambah deskripsi cutinya
-    if (lower.includes("idul fitri")) return `Cuti Bersama Hari Raya Idul Fitri ${hijriyah[tahun]} Hijriyah`;
+    if (lower.includes("idul fitri")) return `Cuti Bersama Hari Raya Idul Fitri`;
     if (lower.includes("kenaikan")) return "Cuti Bersama Kenaikan Yesus Kristus";
     if (lower.includes("natal")) return "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
     if (lower.includes("waisak")) return `Cuti Bersama Waisak`;
