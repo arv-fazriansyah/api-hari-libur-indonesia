@@ -7,13 +7,11 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
 const TARGET_YEARS = [new Date().getFullYear(), new Date().getFullYear() + 1];
 
-const hijriyah = {
-  2025: 1446,
-  2026: 1447,
-};
+
 const kongzili = (tahun) => tahun + 551;
 const saka = (tahun) => tahun - 78;
 const buddhist = (tahun) => tahun + 544;
+const hijriyah = (tahun) => tahun - 578;
 
 function normalize(summary, tahun, tanggal) {
   const lower = summary.toLowerCase();
