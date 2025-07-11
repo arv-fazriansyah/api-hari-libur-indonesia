@@ -3,7 +3,7 @@ name: Update Hari Libur Nasional
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 1 1 *"  # Setiap 1 Januari
+    - cron: "0 0 1 1 *"  # Jalankan setiap 1 Januari
 
 env:
   CALENDAR_ID: id.indonesian%23holiday@group.v.calendar.google.com
@@ -30,60 +30,66 @@ jobs:
         run: |
           pip install hijri-converter ephem lunardate pytz
 
-      - name: Generate hari libur nasional
+      - name: Generate Hari Libur Nasional
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           mkdir -p data
           THIS_YEAR=$(date +%Y)
-          NEXT_YEAR=$(($THIS_YEAR + 1))
+          NEXT_YEAR=$((THIS_YEAR + 1))
 
           for YEAR in $THIS_YEAR $NEXT_YEAR; do
             echo "📅 Memproses tahun $YEAR..."
             TIME_MIN="${YEAR}-01-01T00:00:00Z"
             TIME_MAX="${YEAR}-12-31T23:59:59Z"
             FILE="data/${YEAR}.json"
-
             URL="https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${GOOGLE_API_KEY}&timeMin=${TIME_MIN}&timeMax=${TIME_MAX}&orderBy=startTime&singleEvents=true"
+            
             echo "🌐 Fetching from: $URL"
-
             RESPONSE=$(curl -s "$URL")
             ITEMS=$(echo "$RESPONSE" | jq '.items // []')
 
             if [ "$ITEMS" = "[]" ]; then
-              echo "⚠️  Google Calendar kosong. Menjalankan fallback script."
+              echo "⚠️ Google Calendar kosong. Menjalankan fallback script Python..."
               python3 script/python.py "$YEAR" > "$FILE"
-            else
-              echo "$ITEMS" | jq '[.[] |
-                {
-                  Keterangan: .summary,
-                  Tanggal: (.start.date // .start.dateTime | split("T")[0])
-                } |
-                select(
-                  (.Keterangan | test("^(?!.*(Cuti|Malam|Diwali)).*"; "i")) and
-                  (.Keterangan | test("Tahun Baru|Isra|Imlek|Nyepi|Idul Fitri|Idul Adha|Muharam|Maulid|Waisak|Paskah|Wafat|Kenaikan|Natal|Buruh|Pancasila|Proklamasi"; "i"))
-                ) |
-                .Keterangan |=
-                  sub("Hari Tahun Baru.*?(\\d{4})?"; "Tahun Baru \(.Tanggal[0:4]) Masehi") |
-                  sub("Isra.*?"; "Isra Mikraj Nabi Muhammad S.A.W.") |
-                  sub("Tahun Baru Imlek"; "Tahun Baru Imlek \((.Tanggal[0:4] | tonumber + 551)) Kongzili") |
-                  sub("Nyepi.*?Saka (\\d{4})?"; "Hari Suci Nyepi (Tahun Baru Saka \((.Tanggal[0:4] | tonumber - 78)))") |
-                  sub("Idul Fitri.*?"; "Hari Raya Idul Fitri \((.Tanggal[0:4] | tonumber - 579)) Hijriyah") |
-                  sub("Idul Adha.*?"; "Hari Raya Idul Adha \((.Tanggal[0:4] | tonumber - 579)) Hijriyah") |
-                  sub("Satu Muharam.*?"; "1 Muharam Tahun Baru Islam \((.Tanggal[0:4] | tonumber - 578)) Hijriyah") |
-                  sub("Maulid.*?"; "Maulid Nabi Muhammad S.A.W.") |
-                  sub("Waisak.*?"; "Hari Raya Waisak \((.Tanggal[0:4] | tonumber + 544)) BE") |
-                  sub("Wafat.*?"; "Wafat Yesus Kristus") |
-                  sub("Hari Paskah.*?"; "Hari Paskah (Kebangkitan Yesus Kristus)") |
-                  sub("Kenaikan.*?"; "Kenaikan Yesus Kristus") |
-                  sub("Hari Raya Natal"; "Kelahiran Yesus Kristus (Natal)") |
-                  sub("Hari Buruh.*?"; "Hari Buruh Internasional") |
-                  sub("Hari Lahir Pancasila"; "Hari Lahir Pancasila") |
-                  sub("Hari Proklamasi.*?"; "Proklamasi Kemerdekaan Ke-\((.Tanggal[0:4] | tonumber - 1945))")
-              ]' > "$FILE"
-
-              echo "✅ Disimpan ke $FILE dari Google Calendar (terfilter)"
+              continue
             fi
+
+            echo "$ITEMS" | jq '[.[] |
+              {
+                summary: .summary,
+                date: (.start.date // .start.dateTime | split("T")[0])
+              }
+            ] | map(
+              select(
+                (.summary | test("^(?!.*(Cuti|Malam|Diwali)).*"; "i")) and
+                (.summary | test("Tahun Baru|Isra|Imlek|Nyepi|Idul Fitri|Idul Adha|Muharam|Maulid|Waisak|Paskah|Wafat|Kenaikan|Natal|Buruh|Pancasila|Proklamasi"; "i"))
+              ) |
+              {
+                Tanggal: .date,
+                Keterangan:
+                  (.summary
+                    | sub("Hari Tahun Baru.*?(\\d{4})?"; "Tahun Baru \(.date[0:4]) Masehi")
+                    | sub("Isra.*?"; "Isra Mikraj Nabi Muhammad S.A.W.")
+                    | sub("Tahun Baru Imlek"; "Tahun Baru Imlek \((.date[0:4] | tonumber + 551)) Kongzili")
+                    | sub("Nyepi.*?Saka (\\d{4})?"; "Hari Suci Nyepi (Tahun Baru Saka \((.date[0:4] | tonumber - 78)))")
+                    | sub("Idul Fitri.*?"; "Hari Raya Idul Fitri \((.date[0:4] | tonumber - 579)) Hijriyah")
+                    | sub("Idul Adha.*?"; "Hari Raya Idul Adha \((.date[0:4] | tonumber - 579)) Hijriyah")
+                    | sub("Satu Muharam.*?"; "1 Muharam Tahun Baru Islam \((.date[0:4] | tonumber - 578)) Hijriyah")
+                    | sub("Maulid.*?"; "Maulid Nabi Muhammad S.A.W.")
+                    | sub("Waisak.*?"; "Hari Raya Waisak \((.date[0:4] | tonumber + 544)) BE")
+                    | sub("Wafat.*?"; "Wafat Yesus Kristus")
+                    | sub("Hari Paskah.*?"; "Hari Paskah (Kebangkitan Yesus Kristus)")
+                    | sub("Kenaikan.*?"; "Kenaikan Yesus Kristus")
+                    | sub("Hari Raya Natal"; "Kelahiran Yesus Kristus (Natal)")
+                    | sub("Hari Buruh.*?"; "Hari Buruh Internasional")
+                    | sub("Hari Lahir Pancasila"; "Hari Lahir Pancasila")
+                    | sub("Hari Proklamasi.*?"; "Proklamasi Kemerdekaan Ke-\((.date[0:4] | tonumber - 1945))")
+                  )
+              }
+            ]' > "$FILE"
+
+            echo "✅ Disimpan ke $FILE"
           done
 
       - name: Commit dan Push hasil
@@ -91,5 +97,5 @@ jobs:
         with:
           commit_message: "🔄 Update otomatis hari libur nasional"
           branch: main
-          file_pattern: 'data/*.json'
-          push_options: '--force'
+          file_pattern: "data/*.json"
+          push_options: "--force"
