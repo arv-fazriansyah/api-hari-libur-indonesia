@@ -1,0 +1,69 @@
+name: Ambil Hari Libur Nasional
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 1 1 *" # setiap 1 Januari jam 08:00 WIB
+
+env:
+  CALENDAR_ID: id.indonesian#holiday@group.v.calendar.google.com
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        year: [${{ github.event.inputs.year || github.run_attempt }}]
+        include:
+          - year: ${{ github.event.inputs.year || format('{0}', fromJSON('["' + (github.run_number | toString) + '"]')[0]) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          pip install hijri-converter ephem lunardate pytz
+
+      - name: Ambil dan simpan hari libur
+        run: |
+          YEARS=$(date +%Y)
+          NEXT=$(($(date +%Y)+1))
+
+          for YEAR in $YEARS $NEXT; do
+            echo "Mengambil data dari Google Calendar untuk tahun $YEAR..."
+
+            FILE="data/$YEAR.json"
+            mkdir -p data
+
+            TIME_MIN="${YEAR}-01-01T00:00:00Z"
+            TIME_MAX="${YEAR}-12-31T23:59:59Z"
+
+            RESPONSE=$(curl -s "https://www.googleapis.com/calendar/v3/calendars/${{ env.CALENDAR_ID }}/events?key=${{ secrets.GOOGLE_API_KEY }}&timeMin=${TIME_MIN}&timeMax=${TIME_MAX}&orderBy=startTime&singleEvents=true")
+
+            ITEMS=$(echo "$RESPONSE" | jq '.items')
+
+            if [ "$ITEMS" = "[]" ]; then
+              echo "Data kosong, menggunakan fallback script Python untuk tahun $YEAR"
+              python3 scripts/python.py "$YEAR"
+            else
+              echo "$ITEMS" | jq '[.[] | {Keterangan: .summary, Tanggal: .start.date}]' > "$FILE"
+              echo "Disimpan ke $FILE dari Google Calendar"
+            fi
+          done
+
+      - name: Commit dan Push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update data hari libur dari Google Calendar (otomatis)"
+          branch: main
+          file_pattern: 'data/*.json'
