@@ -9,9 +9,7 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
 const TARGET_YEARS = [new Date().getFullYear(), new Date().getFullYear() + 1];
 
-// ============================
 // Konversi Tahun Kalender
-// ============================
 const kongzili = (tahun) => tahun + 551;
 const saka = (tahun) => tahun - 78;
 const buddhist = (tahun) => tahun + 544;
@@ -22,14 +20,12 @@ function hijriyahYear(tanggalIso) {
   return hijri.getFullYear();
 }
 
-// ============================
-// Fungsi Normalize Nama Libur
-// ============================
 function normalize(summary, tahun, tanggal) {
   const lower = summary.toLowerCase();
   let result = null;
   let isBelumPasti = /\(belum pasti\)/i.test(summary) || lower.includes("belum pasti");
 
+  // Normalisasi nama libur
   if (lower.includes("cuti")) {
     if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri ${hijriyahYear(tanggal)} Hijriyah`;
     else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
@@ -53,16 +49,20 @@ function normalize(summary, tahun, tanggal) {
   else if (/pancasila/i.test(summary)) result = "Hari Lahir Pancasila";
   else if (/kemerdekaan/i.test(summary)) result = `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
 
-  const now = new Date();
-  const liburDate = new Date(tanggal);
-  if (isBelumPasti && liburDate <= now) isBelumPasti = false;
-  if (result && isBelumPasti && !result.includes("(belum pasti)")) result += " (belum pasti)";
+  // Hapus tag "belum pasti" jika tanggal sudah lewat
+  if (isBelumPasti) {
+    const now = new Date();
+    const liburDate = new Date(tanggal);
+    if (liburDate <= now) isBelumPasti = false;
+  }
+
+  if (result && isBelumPasti && !result.includes("(belum pasti)")) {
+    result += " (belum pasti)";
+  }
+
   return result;
 }
 
-// ============================
-// Fetch dari Google Calendar
-// ============================
 function fetchFromGoogleCalendar(tahun) {
   return new Promise((resolve, reject) => {
     const timeMin = `${tahun}-01-01T00:00:00Z`;
@@ -78,17 +78,15 @@ function fetchFromGoogleCalendar(tahun) {
           const json = JSON.parse(raw);
           const items = json.items || [];
 
-          const hasil = items
-            .map((item) => {
-              const summary = item.summary?.trim();
-              const tanggal = item.start?.date;
-              const norm = normalize(summary, tahun, tanggal);
-              if (!norm || !tanggal) return null;
-              return { Keterangan: norm, Tanggal: tanggal };
-            })
-            .filter(Boolean)
-            .sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
+          const hasil = items.map((item) => {
+            const summary = item.summary?.trim();
+            const tanggal = item.start?.date;
+            const norm = normalize(summary, tahun, tanggal);
+            if (!norm || !tanggal) return null;
+            return { Keterangan: norm, Tanggal: tanggal };
+          }).filter(Boolean);
 
+          hasil.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
           resolve(hasil);
         } catch (err) {
           reject(err);
@@ -98,55 +96,13 @@ function fetchFromGoogleCalendar(tahun) {
   });
 }
 
-// ============================
-// Fetch mentah untuk master.json
-// ============================
-function fetchRawFromGoogleCalendar(tahun) {
-  return new Promise((resolve, reject) => {
-    const timeMin = `${tahun}-01-01T00:00:00Z`;
-    const timeMax = `${tahun}-12-31T23:59:59Z`;
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${GOOGLE_API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&orderBy=startTime&singleEvents=true`;
-
-    https.get(url, (res) => {
-      let raw = "";
-      res.on("data", (chunk) => (raw += chunk));
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(raw);
-          const items = json.items || [];
-
-          const hasil = items
-            .map((item) => {
-              const summary = item.summary?.trim();
-              const tanggal = item.start?.date;
-              if (!summary || !tanggal) return null;
-              return { summary, date: tanggal };
-            })
-            .filter(Boolean)
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-          resolve({ tahun, data: hasil });
-        } catch (err) {
-          reject(err);
-        }
-      });
-    }).on("error", reject);
-  });
-}
-
-// ============================
-// Main Execution
-// ============================
 (async () => {
-  const master = [];
-
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
-
-    // ==== Simpan hasil normalisasi ====
     try {
       const data = await fetchFromGoogleCalendar(tahun);
       if (!data.length) throw new Error("Data kosong");
+
       fs.mkdirSync("data", { recursive: true });
       const file = path.join("data", `${tahun}.json`);
       fs.writeFileSync(file, JSON.stringify(data, null, 2));
@@ -162,21 +118,5 @@ function fetchRawFromGoogleCalendar(tahun) {
         process.exit(1);
       }
     }
-
-    // ==== Simpan hasil mentah ke master.json ====
-    try {
-      const rawData = await fetchRawFromGoogleCalendar(tahun);
-      master.push(rawData);
-    } catch (err) {
-      console.warn(`❌ Gagal ambil data mentah tahun ${tahun}: ${err.message}`);
-    }
-  }
-
-  // ==== Simpan master.json ====
-  if (master.length > 0) {
-    fs.mkdirSync("data", { recursive: true });
-    const masterFile = path.join("data", "master.json");
-    fs.writeFileSync(masterFile, JSON.stringify(master, null, 2));
-    console.log(`📦 File master.json disimpan di ${masterFile}`);
   }
 })();
