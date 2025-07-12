@@ -44,7 +44,7 @@ function normalize(summary, tahun, tanggal) {
   else if (/hari raya natal/i.test(summary) || /natal/.test(summary)) result = "Kelahiran Yesus Kristus (Natal)";
   else if (/buruh/i.test(summary)) result = "Hari Buruh Internasional";
   else if (/pancasila/i.test(summary)) result = "Hari Lahir Pancasila";
-  else if (/kemerdekaan/i.test(summary)) result = `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
+  else if (/kemerdekaan/i.test(summary)) result = `Hari Proklamasi Kemerdekaan R.I. Ke-${tahun - 1945}`;
 
   if (isBelumPasti) {
     const now = new Date();
