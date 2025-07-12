@@ -23,7 +23,7 @@ if (lower.includes("cuti")) {
   if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri`;
   else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
   else if (lower.includes("natal")) result = "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
-  else if (lower.includes("waisak")) result = `Cuti Bersama Waisak`;
+  else if (lower.includes("waisak")) result = `Cuti Bersama Hari Raya Waisak`;
   else if (lower.includes("imlek")) result = `Cuti Bersama Tahun Baru Imlek`;
   else if (lower.includes("nyepi")) result = `Cuti Bersama Hari Suci Nyepi`;
   else result = `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
