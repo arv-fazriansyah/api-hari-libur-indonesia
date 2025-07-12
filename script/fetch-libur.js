@@ -7,7 +7,9 @@ const { spawnSync } = require("child_process");
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
-const TARGET_YEARS = [new Date().getFullYear(), new Date().getFullYear() + 1];
+const START_YEAR = new Date().getFullYear();
+const END_YEAR = START_YEAR + 5;
+const TARGET_YEARS = Array.from({ length: END_YEAR - START_YEAR + 1 }, (_, i) => START_YEAR + i);
 
 function hijriyah(tahunMasehi) {
   return Math.floor((tahunMasehi - 622) * 33 / 32);
@@ -84,53 +86,52 @@ function fetchFromGoogleCalendar(tahun) {
 const masterRaw = [];
 
 (async () => {
+  fs.mkdirSync("data", { recursive: true });
+
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
+    let items = [];
+
     try {
-      const items = await fetchFromGoogleCalendar(tahun);
-
-      // Simpan ke masterRaw walau kosong
-      const rawData = items.map((item) => ({
-        summary: item.summary?.trim(),
-        date: item.start?.date,
-      }));
-      masterRaw.push({ tahun, data: rawData });
-
-      if (!items.length) {
-        console.warn(`⚠️ Tidak ada event dari Google Calendar untuk ${tahun}`);
-        continue; // Jangan buat file {tahun}.json
-      }
-
-      // Data normalize
-      const data = items.map((item) => {
-        const summary = item.summary?.trim();
-        const tanggal = item.start?.date;
-        const norm = normalize(summary, tahun, tanggal);
-        if (!norm || !tanggal) return null;
-        return { Keterangan: norm, Tanggal: tanggal };
-      }).filter(Boolean);
-
-      data.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
-
-      fs.mkdirSync("data", { recursive: true });
-      const file = path.join("data", `${tahun}.json`);
-      fs.writeFileSync(file, JSON.stringify(data, null, 2));
-      console.log(`✅ Disimpan ke ${file}`);
-
+      items = await fetchFromGoogleCalendar(tahun);
     } catch (err) {
-      console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
-      console.log(`🔁 Fallback ke script/python.py ${tahun}`);
+      console.warn(`⚠️ Gagal fetch dari Google Calendar: ${err.message}`);
+    }
+
+    const rawData = items.map((item) => ({
+      summary: item.summary?.trim(),
+      date: item.start?.date,
+    }));
+
+    masterRaw.push({ tahun, data: rawData });
+
+    let data = items.map((item) => {
+      const summary = item.summary?.trim();
+      const tanggal = item.start?.date;
+      const norm = normalize(summary, tahun, tanggal);
+      if (!norm || !tanggal) return null;
+      return { Keterangan: norm, Tanggal: tanggal };
+    }).filter(Boolean);
+
+    if (!data.length) {
+      console.warn(`⚠️ Tidak ada data valid dari Google untuk ${tahun}, coba Python fallback`);
       const res = spawnSync("python3", ["script/python.py", tahun], {
         stdio: "inherit"
       });
       if (res.status !== 0) {
-        console.error(`❌ Gagal fallback Python untuk tahun ${tahun}`);
+        console.error(`❌ Fallback Python gagal untuk ${tahun}`);
         process.exit(1);
       }
+      continue; // Lewat karena Python akan simpan file-nya sendiri
     }
+
+    data.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
+
+    const file = path.join("data", `${tahun}.json`);
+    fs.writeFileSync(file, JSON.stringify(data, null, 2));
+    console.log(`✅ Disimpan ke ${file}`);
   }
 
-  // Simpan master.json meskipun tahun depan kosong
   const masterFile = path.join("data", "master.json");
   fs.writeFileSync(masterFile, JSON.stringify(masterRaw, null, 2));
   console.log(`✅ Disimpan ke ${masterFile}`);
