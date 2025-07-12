@@ -7,6 +7,7 @@ const { spawnSync } = require("child_process");
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
+
 const START_YEAR = new Date().getFullYear();
 const END_YEAR = START_YEAR + 5;
 const TARGET_YEARS = Array.from({ length: END_YEAR - START_YEAR + 1 }, (_, i) => START_YEAR + i);
@@ -122,17 +123,32 @@ const masterRaw = [];
         console.error(`❌ Fallback Python gagal untuk ${tahun}`);
         process.exit(1);
       }
-      continue; // Lewat karena Python akan simpan file-nya sendiri
+      continue; // Python akan simpan file {tahun}.json sendiri
     }
 
     data.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
-
     const file = path.join("data", `${tahun}.json`);
     fs.writeFileSync(file, JSON.stringify(data, null, 2));
     console.log(`✅ Disimpan ke ${file}`);
   }
 
+  // Gabungkan dengan master.json lama
   const masterFile = path.join("data", "master.json");
-  fs.writeFileSync(masterFile, JSON.stringify(masterRaw, null, 2));
-  console.log(`✅ Disimpan ke ${masterFile}`);
+  let oldMaster = [];
+  if (fs.existsSync(masterFile)) {
+    try {
+      oldMaster = JSON.parse(fs.readFileSync(masterFile, "utf-8"));
+    } catch (err) {
+      console.warn(`⚠️ Gagal membaca master.json lama: ${err.message}`);
+    }
+  }
+
+  const yearMap = new Map(oldMaster.map(entry => [entry.tahun, entry]));
+  for (const entry of masterRaw) {
+    yearMap.set(entry.tahun, entry); // Timpa jika tahun sama
+  }
+
+  const finalMaster = Array.from(yearMap.values()).sort((a, b) => a.tahun - b.tahun);
+  fs.writeFileSync(masterFile, JSON.stringify(finalMaster, null, 2));
+  console.log(`✅ Disimpan ke ${masterFile} (inkremental)`);
 })();
