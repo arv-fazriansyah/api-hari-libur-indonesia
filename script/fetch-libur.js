@@ -20,12 +20,12 @@ function hijriyahYear(tanggalIso) {
   return hijri.getFullYear();
 }
 
+// Normalisasi Keterangan
 function normalize(summary, tahun, tanggal) {
   const lower = summary.toLowerCase();
   let result = null;
   let isBelumPasti = /\(belum pasti\)/i.test(summary) || lower.includes("belum pasti");
 
-  // Normalisasi nama libur
   if (lower.includes("cuti")) {
     if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri ${hijriyahYear(tanggal)} Hijriyah`;
     else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
@@ -49,17 +49,10 @@ function normalize(summary, tahun, tanggal) {
   else if (/pancasila/i.test(summary)) result = "Hari Lahir Pancasila";
   else if (/kemerdekaan/i.test(summary)) result = `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
 
-  // Hapus tag "belum pasti" jika tanggal sudah lewat
-  if (isBelumPasti) {
-    const now = new Date();
-    const liburDate = new Date(tanggal);
-    if (liburDate <= now) isBelumPasti = false;
-  }
-
-  if (result && isBelumPasti && !result.includes("(belum pasti)")) {
-    result += " (belum pasti)";
-  }
-
+  const now = new Date();
+  const liburDate = new Date(tanggal);
+  if (isBelumPasti && liburDate <= now) isBelumPasti = false;
+  if (result && isBelumPasti && !result.includes("(belum pasti)")) result += " (belum pasti)";
   return result;
 }
 
@@ -77,7 +70,6 @@ function fetchFromGoogleCalendar(tahun) {
         try {
           const json = JSON.parse(raw);
           const items = json.items || [];
-
           const hasil = items.map((item) => {
             const summary = item.summary?.trim();
             const tanggal = item.start?.date;
@@ -96,24 +88,8 @@ function fetchFromGoogleCalendar(tahun) {
   });
 }
 
-const masterFile = path.join("data", "master.json");
-
-function loadMasterData() {
-  try {
-    const jsonData = fs.readFileSync(masterFile, "utf-8");
-    return JSON.parse(jsonData);
-  } catch {
-    return {}; // Kalau belum ada file atau error baca, return objek kosong
-  }
-}
-
-function saveMasterData(data) {
-  fs.mkdirSync("data", { recursive: true });
-  fs.writeFileSync(masterFile, JSON.stringify(data, null, 2));
-}
-
 (async () => {
-  let masterData = loadMasterData();
+  const dataPerTahun = {};
 
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
@@ -121,25 +97,11 @@ function saveMasterData(data) {
       const data = await fetchFromGoogleCalendar(tahun);
       if (!data.length) throw new Error("Data kosong");
 
-      // Gabungkan data baru dengan data lama tanpa hapus data lama, hindari duplikasi
-      if (!masterData[tahun]) {
-        masterData[tahun] = data;
-      } else {
-        const existing = masterData[tahun];
-        const combined = [...existing];
-
-        data.forEach((newItem) => {
-          const exists = existing.some(e =>
-            e.Tanggal === newItem.Tanggal && e.Keterangan === newItem.Keterangan
-          );
-          if (!exists) combined.push(newItem);
-        });
-
-        combined.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
-        masterData[tahun] = combined;
-      }
-
-      console.log(`✅ Data tahun ${tahun} siap digabung ke master.json`);
+      fs.mkdirSync("data", { recursive: true });
+      const file = path.join("data", `${tahun}.json`);
+      fs.writeFileSync(file, JSON.stringify(data, null, 2));
+      console.log(`✅ Disimpan ke ${file}`);
+      dataPerTahun[tahun] = data;
     } catch (err) {
       console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
       console.log(`🔁 Fallback ke script/python.py ${tahun}`);
@@ -150,9 +112,35 @@ function saveMasterData(data) {
         console.error(`❌ Gagal fallback Python untuk tahun ${tahun}`);
         process.exit(1);
       }
+      const file = path.join("data", `${tahun}.json`);
+      if (fs.existsSync(file)) {
+        dataPerTahun[tahun] = JSON.parse(fs.readFileSync(file, "utf-8"));
+      }
     }
   }
 
-  saveMasterData(masterData);
-  console.log(`🎉 Semua data digabung dan disimpan ke ${masterFile}`);
+  // 🔁 Update master.json
+  const masterFile = path.join("data", "master.json");
+  let master = [];
+
+  if (fs.existsSync(masterFile)) {
+    try {
+      master = JSON.parse(fs.readFileSync(masterFile, "utf-8"));
+    } catch (e) {
+      console.warn("⚠️ Gagal parse master.json lama, akan ditimpa.");
+    }
+  }
+
+  for (const tahun of TARGET_YEARS) {
+    const index = master.findIndex((d) => d.tahun === tahun);
+    if (index >= 0) {
+      master[index].data = dataPerTahun[tahun];
+    } else {
+      master.push({ tahun, data: dataPerTahun[tahun] });
+    }
+  }
+
+  master.sort((a, b) => a.tahun - b.tahun);
+  fs.writeFileSync(masterFile, JSON.stringify(master, null, 2));
+  console.log(`📦 Master data disimpan ke ${masterFile}`);
 })();
