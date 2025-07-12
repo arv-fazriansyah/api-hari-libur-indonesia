@@ -9,10 +9,12 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
 const TARGET_YEARS = [new Date().getFullYear(), new Date().getFullYear() + 1];
 
+// Konversi Tahun Kalender
 const kongzili = (tahun) => tahun + 551;
 const saka = (tahun) => tahun - 78;
 const buddhist = (tahun) => tahun + 544;
 
+// Konversi tahun Hijriyah berdasarkan tanggal ISO
 function hijriyahYear(tanggalIso) {
   const hijri = new HijriDate(new Date(tanggalIso));
   return hijri.getFullYear();
@@ -77,9 +79,8 @@ function fetchFromGoogleCalendar(tahun) {
           const hasil = items.map((item) => {
             const summary = item.summary?.trim();
             const tanggal = item.start?.date;
-            const norm = normalize(summary, tahun, tanggal);
-            if (!norm || !tanggal) return null;
-            return { Keterangan: norm, Tanggal: tanggal };
+            if (!summary || !tanggal) return null;
+            return { Keterangan: summary, Tanggal: tanggal }; // tanpa normalize
           }).filter(Boolean);
 
           hasil.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
@@ -93,8 +94,6 @@ function fetchFromGoogleCalendar(tahun) {
 }
 
 (async () => {
-  const master = [];
-
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
     try {
@@ -105,10 +104,6 @@ function fetchFromGoogleCalendar(tahun) {
       const file = path.join("data", `${tahun}.json`);
       fs.writeFileSync(file, JSON.stringify(data, null, 2));
       console.log(`✅ Disimpan ke ${file}`);
-
-      // Tambahkan ke master.json
-      master.push({ tahun, data });
-
     } catch (err) {
       console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
       console.log(`🔁 Fallback ke script/python.py ${tahun}`);
@@ -122,8 +117,24 @@ function fetchFromGoogleCalendar(tahun) {
     }
   }
 
-  // Simpan master.json
-  const masterFile = path.join("data", "master.json");
-  fs.writeFileSync(masterFile, JSON.stringify(master, null, 2));
-  console.log(`📦 Semua data disimpan dalam ${masterFile}`);
+  // 🔁 Gabungkan hasil ke master.json jika ada
+  const master = [];
+
+  for (const tahun of TARGET_YEARS) {
+    const file = path.join("data", `${tahun}.json`);
+    if (fs.existsSync(file)) {
+      const data = JSON.parse(fs.readFileSync(file, "utf-8"));
+      if (data.length > 0) {
+        master.push({ tahun, data });
+      }
+    }
+  }
+
+  if (master.length > 0) {
+    const masterFile = path.join("data", "master.json");
+    fs.writeFileSync(masterFile, JSON.stringify(master, null, 2));
+    console.log(`📦 File master.json berhasil disimpan (${master.length} tahun)`);
+  } else {
+    console.log("🚫 Tidak ada data untuk disimpan ke master.json");
+  }
 })();
