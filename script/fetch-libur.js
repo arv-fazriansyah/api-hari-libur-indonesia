@@ -1,24 +1,19 @@
-#!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
 const { spawnSync } = require("child_process");
-const { HijriDate } = require("hijri-date/lib/safe");
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
 const TARGET_YEARS = [new Date().getFullYear(), new Date().getFullYear() + 1];
 
-// Konversi Tahun Kalender
+const hijriyah = {
+  2025: 1446,
+  2026: 1447,
+};
 const kongzili = (tahun) => tahun + 551;
 const saka = (tahun) => tahun - 78;
 const buddhist = (tahun) => tahun + 544;
-
-// Konversi tahun Hijriyah berdasarkan tanggal ISO
-function hijriyahYear(tanggalIso) {
-  const hijri = new HijriDate(new Date(tanggalIso));
-  return hijri.getFullYear();
-}
 
 function normalize(summary, tahun, tanggal) {
   const lower = summary.toLowerCase();
@@ -27,7 +22,7 @@ function normalize(summary, tahun, tanggal) {
 
   // Normalisasi nama libur
   if (lower.includes("cuti")) {
-    if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri ${hijriyahYear(tanggal)} Hijriyah`;
+    if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri ${hijriyah[tahun]} Hijriyah`;
     else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
     else if (lower.includes("natal")) result = "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
     else if (lower.includes("waisak")) result = `Cuti Bersama Waisak ${buddhist(tahun)} BE`;
@@ -36,10 +31,10 @@ function normalize(summary, tahun, tanggal) {
   else if (/imlek/i.test(summary)) result = `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
   else if (/nyepi/i.test(summary)) result = `Hari Suci Nyepi (Tahun Baru Saka ${saka(tahun)})`;
   else if (/isra/i.test(summary)) result = "Isra Mikraj Nabi Muhammad S.A.W.";
-  else if (/idul fitri/i.test(summary)) result = `Hari Raya Idul Fitri ${hijriyahYear(tanggal)} Hijriyah`;
-  else if (/idul adha/i.test(summary)) result = `Hari Raya Idul Adha ${hijriyahYear(tanggal)} Hijriyah`;
+  else if (/idul fitri/i.test(summary)) result = `Hari Raya Idul Fitri ${hijriyah[tahun]} Hijriyah`;
+  else if (/idul adha/i.test(summary)) result = `Hari Raya Idul Adha ${hijriyah[tahun]} Hijriyah`;
   else if (/maulid/i.test(summary)) result = "Maulid Nabi Muhammad S.A.W.";
-  else if (/muharam/.test(lower)) result = `1 Muharam Tahun Baru Islam ${hijriyahYear(tanggal)} Hijriyah`;
+  else if (/muharam/.test(lower)) result = `1 Muharam Tahun Baru Islam ${hijriyah[tahun] + 1} Hijriyah`;
   else if (/waisak/i.test(summary)) result = `Hari Raya Waisak ${buddhist(tahun)} BE`;
   else if (/wafat/i.test(summary)) result = "Wafat Yesus Kristus";
   else if (/paskah/i.test(summary)) result = "Hari Paskah (Kebangkitan Yesus Kristus)";
@@ -49,7 +44,7 @@ function normalize(summary, tahun, tanggal) {
   else if (/pancasila/i.test(summary)) result = "Hari Lahir Pancasila";
   else if (/kemerdekaan/i.test(summary)) result = `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
 
-  // Hapus tag "belum pasti" jika tanggal sudah lewat
+  // Jika sebelumnya ditandai (belum pasti), tapi sekarang tanggalnya sudah lewat, hapus tag-nya
   if (isBelumPasti) {
     const now = new Date();
     const liburDate = new Date(tanggal);
