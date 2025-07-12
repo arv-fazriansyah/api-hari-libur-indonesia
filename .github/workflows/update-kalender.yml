@@ -39,3 +39,7 @@ jobs:
           commit_message: "🔄 Update libur nasional dari Google Calendar"
           file_pattern: "data/*.json"
           push_options: --force
+
+      - name: Panggil Webhook Kaldik
+        run: |
+          curl -sSL "${{ secrets.WEBHOOK_KALDIK }}"
