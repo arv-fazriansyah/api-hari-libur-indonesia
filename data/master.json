@@ -3,11 +3,7 @@
     "tahun": 2025,
     "data": [
       {
-        "Keterangan": "Hari Tahun Baru",
-        "Tanggal": "2025-01-01"
-      },
-      {
-        "Keterangan": "Isra Mikraj Nabi Muhammad",
+        "Keterangan": "Isra Mikraj Nabi Muhammad S.A.W.",
         "Tanggal": "2025-01-27"
       },
       {
@@ -19,51 +15,47 @@
         "Tanggal": "2025-01-29"
       },
       {
-        "Keterangan": "Ramadan Start",
-        "Tanggal": "2025-03-01"
-      },
-      {
         "Keterangan": "Cuti Bersama Hari Suci Nyepi (Tahun Baru Saka)",
         "Tanggal": "2025-03-28"
       },
       {
-        "Keterangan": "Hari Suci Nyepi (Tahun Baru Saka)",
+        "Keterangan": "Hari Suci Nyepi",
         "Tanggal": "2025-03-29"
       },
       {
-        "Keterangan": "Hari Idul Fitri",
+        "Keterangan": "Hari Raya Idul Fitri",
         "Tanggal": "2025-03-31"
       },
       {
-        "Keterangan": "Hari Idul Fitri",
+        "Keterangan": "Hari Raya Idul Fitri",
         "Tanggal": "2025-04-01"
       },
       {
-        "Keterangan": "Cuti Bersama Idul Fitri",
+        "Keterangan": "Cuti Bersama Hari Raya Idul Fitri",
         "Tanggal": "2025-04-02"
       },
       {
-        "Keterangan": "Cuti Bersama Idul Fitri",
+        "Keterangan": "Cuti Bersama Hari Raya Idul Fitri",
         "Tanggal": "2025-04-03"
       },
       {
-        "Keterangan": "Cuti Bersama Idul Fitri",
+        "Keterangan": "Cuti Bersama Hari Raya Idul Fitri",
         "Tanggal": "2025-04-04"
       },
       {
-        "Keterangan": "Cuti Bersama Idul Fitri",
+        "Keterangan": "Cuti Bersama Hari Raya Idul Fitri",
         "Tanggal": "2025-04-07"
       },
       {
-        "Keterangan": "Wafat Isa Almasih",
+        "Keterangan": "Wafat Yesus Kristus",
         "Tanggal": "2025-04-18"
       },
       {
-        "Keterangan": "Hari Paskah",
+        "Keterangan": "Hari Paskah (Kebangkitan Yesus Kristus)",
         "Tanggal": "2025-04-20"
       },
       {
-        "Keterangan": "Hari Buruh Internasional / Pekerja",
+        "Keterangan": "Hari Buruh Internasional",
         "Tanggal": "2025-05-01"
       },
       {
@@ -75,11 +67,11 @@
         "Tanggal": "2025-05-13"
       },
       {
-        "Keterangan": "Kenaikan Isa Al Masih",
+        "Keterangan": "Kenaikan Yesus Kristus",
         "Tanggal": "2025-05-29"
       },
       {
-        "Keterangan": "Cuti Bersama Kenaikan Isa Al Masih",
+        "Keterangan": "Cuti Bersama Kenaikan Yesus Kristus",
         "Tanggal": "2025-05-30"
       },
       {
@@ -87,44 +79,28 @@
         "Tanggal": "2025-06-01"
       },
       {
-        "Keterangan": "Idul Adha (Lebaran Haji) (belum pasti)",
+        "Keterangan": "Hari Raya Idul Adha",
         "Tanggal": "2025-06-06"
       },
       {
-        "Keterangan": "Idul Adha (Lebaran Haji)",
+        "Keterangan": "Hari Raya Idul Adha",
         "Tanggal": "2025-06-09"
       },
       {
-        "Keterangan": "Satu Muharam / Tahun Baru Hijriah (belum pasti)",
+        "Keterangan": "1 Muharam Tahun Baru Islam",
         "Tanggal": "2025-06-27"
       },
       {
-        "Keterangan": "Hari Proklamasi Kemerdekaan R.I.",
+        "Keterangan": "Proklamasi Kemerdekaan",
         "Tanggal": "2025-08-17"
       },
       {
-        "Keterangan": "Maulid Nabi Muhammad (belum pasti)",
+        "Keterangan": "Maulid Nabi Muhammad S.A.W. (belum pasti)",
         "Tanggal": "2025-09-05"
       },
       {
-        "Keterangan": "Diwali",
-        "Tanggal": "2025-10-21"
-      },
-      {
-        "Keterangan": "Malam Natal",
-        "Tanggal": "2025-12-24"
-      },
-      {
-        "Keterangan": "Hari Raya Natal",
-        "Tanggal": "2025-12-25"
-      },
-      {
-        "Keterangan": "Cuti Bersama Natal (Hari Tinju)",
+        "Keterangan": "Cuti Bersama Kelahiran Yesus Kristus (Natal)",
         "Tanggal": "2025-12-26"
-      },
-      {
-        "Keterangan": "Malam Tahun Baru",
-        "Tanggal": "2025-12-31"
       }
     ]
   }
