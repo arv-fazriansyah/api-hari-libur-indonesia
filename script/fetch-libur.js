@@ -46,46 +46,50 @@ function fetchFromGoogleCalendar(tahun) {
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
     let data = [];
+    let fromFallback = false;
 
     try {
       data = await fetchFromGoogleCalendar(tahun);
       if (!data.length) throw new Error("Data kosong dari Google Calendar");
 
-      console.log(`✅ Ditemukan ${data.length} entri untuk ${tahun}`);
+      console.log(`✅ Ditemukan ${data.length} entri dari Google Calendar`);
     } catch (err) {
       console.warn(`⚠️ Gagal fetch Google: ${err.message}`);
       console.log(`🔁 Fallback ke script/python.py ${tahun}`);
+
       const res = spawnSync("python3", ["script/python.py", tahun], {
         stdio: "inherit"
       });
 
       if (res.status !== 0) {
         console.error(`❌ Gagal fallback Python untuk tahun ${tahun}`);
-        continue; // lewati tahun ini
+        continue; // skip tahun ini sepenuhnya
       }
 
-      // Baca hasil fallback
       const fallbackFile = path.join("data", `${tahun}.json`);
       if (fs.existsSync(fallbackFile)) {
         const content = fs.readFileSync(fallbackFile, "utf8");
         data = JSON.parse(content).filter(h => h.Keterangan && h.Tanggal);
+        fromFallback = true;
       }
     }
 
-    // Simpan file tahun
-    if (data.length > 0) {
+    if (Array.isArray(data) && data.length > 0) {
       fs.mkdirSync("data", { recursive: true });
       const filePath = path.join("data", `${tahun}.json`);
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
       console.log(`📁 Disimpan ke ${filePath}`);
 
-      collected.push({ tahun, data });
+      if (!fromFallback) {
+        collected.push({ tahun, data });
+      } else {
+        console.log(`🚫 Tahun ${tahun} di-skip dari master.json karena hanya dari fallback`);
+      }
     } else {
-      console.log(`ℹ️ Tidak ada data untuk ${tahun}, dilewati`);
+      console.log(`ℹ️ Tidak ada data valid untuk ${tahun}, dilewati`);
     }
   }
 
-  // Simpan master.json hanya jika ada data
   if (collected.length > 0) {
     try {
       const outputPath = path.join("data", "master.json");
@@ -96,6 +100,6 @@ function fetchFromGoogleCalendar(tahun) {
       process.exit(1);
     }
   } else {
-    console.log("🚫 Tidak ada data libur yang valid, master.json tidak dibuat.");
+    console.log("🚫 Tidak ada data dari Google Calendar, master.json tidak dibuat.");
   }
 })();
