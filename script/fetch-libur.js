@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
@@ -19,15 +21,15 @@ function normalize(summary, tahun, tanggal) {
   let result = null;
   let isBelumPasti = /\(belum pasti\)/i.test(summary) || lower.includes("belum pasti");
 
-if (lower.includes("cuti")) {
-  if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri`;
-  else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
-  else if (lower.includes("natal")) result = "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
-  else if (lower.includes("waisak")) result = `Cuti Bersama Hari Raya Waisak`;
-  else if (lower.includes("imlek")) result = `Cuti Bersama Tahun Baru Imlek`;
-  else if (lower.includes("nyepi")) result = `Cuti Bersama Hari Suci Nyepi`;
-  else result = `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
-} else if (/hari tahun baru/i.test(summary)) result = `Tahun Baru ${tahun} Masehi`;
+  if (lower.includes("cuti")) {
+    if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri`;
+    else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
+    else if (lower.includes("natal")) result = "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
+    else if (lower.includes("waisak")) result = `Cuti Bersama Hari Raya Waisak`;
+    else if (lower.includes("imlek")) result = `Cuti Bersama Tahun Baru Imlek`;
+    else if (lower.includes("nyepi")) result = `Cuti Bersama Hari Suci Nyepi`;
+    else result = `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
+  } else if (/hari tahun baru/i.test(summary)) result = `Tahun Baru ${tahun} Masehi`;
   else if (/imlek/i.test(summary)) result = `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
   else if (/nyepi/i.test(summary)) result = `Hari Suci Nyepi (Tahun Baru Saka ${saka(tahun)})`;
   else if (/isra/i.test(summary)) result = "Isra Mikraj Nabi Muhammad S.A.W.";
@@ -70,18 +72,7 @@ function fetchFromGoogleCalendar(tahun) {
       res.on("end", () => {
         try {
           const json = JSON.parse(raw);
-          const items = json.items || [];
-
-          const hasil = items.map((item) => {
-            const summary = item.summary?.trim();
-            const tanggal = item.start?.date;
-            const norm = normalize(summary, tahun, tanggal);
-            if (!norm || !tanggal) return null;
-            return { Keterangan: norm, Tanggal: tanggal };
-          }).filter(Boolean);
-
-          hasil.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
-          resolve(hasil);
+          resolve(json.items || []);
         } catch (err) {
           reject(err);
         }
@@ -90,17 +81,38 @@ function fetchFromGoogleCalendar(tahun) {
   });
 }
 
+const masterRaw = [];
+
 (async () => {
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
     try {
-      const data = await fetchFromGoogleCalendar(tahun);
-      if (!data.length) throw new Error("Data kosong");
+      const items = await fetchFromGoogleCalendar(tahun);
+      if (!items.length) throw new Error("Data kosong");
+
+      // Data normalize
+      const data = items.map((item) => {
+        const summary = item.summary?.trim();
+        const tanggal = item.start?.date;
+        const norm = normalize(summary, tahun, tanggal);
+        if (!norm || !tanggal) return null;
+        return { Keterangan: norm, Tanggal: tanggal };
+      }).filter(Boolean);
+
+      data.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
 
       fs.mkdirSync("data", { recursive: true });
       const file = path.join("data", `${tahun}.json`);
       fs.writeFileSync(file, JSON.stringify(data, null, 2));
       console.log(`✅ Disimpan ke ${file}`);
+
+      // Data mentah untuk master.json
+      const rawData = items.map((item) => ({
+        summary: item.summary?.trim(),
+        date: item.start?.date,
+      }));
+      masterRaw.push({ tahun, data: rawData });
+
     } catch (err) {
       console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
       console.log(`🔁 Fallback ke script/python.py ${tahun}`);
@@ -113,4 +125,9 @@ function fetchFromGoogleCalendar(tahun) {
       }
     }
   }
+
+  // Simpan master.json
+  const masterFile = path.join("data", "master.json");
+  fs.writeFileSync(masterFile, JSON.stringify(masterRaw, null, 2));
+  console.log(`✅ Disimpan ke ${masterFile}`);
 })();
