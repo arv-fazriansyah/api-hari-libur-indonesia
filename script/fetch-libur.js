@@ -9,12 +9,11 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
 const TARGET_YEARS = [new Date().getFullYear(), new Date().getFullYear() + 1];
 
-// Konversi Tahun Kalender
+// Fungsi konversi tahun
 const kongzili = (tahun) => tahun + 551;
 const saka = (tahun) => tahun - 78;
 const buddhist = (tahun) => tahun + 544;
 
-// Konversi tahun Hijriyah berdasarkan tanggal ISO
 function hijriyahYear(tanggalIso) {
   const hijri = new HijriDate(new Date(tanggalIso));
   return hijri.getFullYear();
@@ -75,16 +74,7 @@ function fetchFromGoogleCalendar(tahun) {
         try {
           const json = JSON.parse(raw);
           const items = json.items || [];
-
-          const hasil = items.map((item) => {
-            const summary = item.summary?.trim();
-            const tanggal = item.start?.date;
-            if (!summary || !tanggal) return null;
-            return { Keterangan: summary, Tanggal: tanggal }; // tanpa normalize
-          }).filter(Boolean);
-
-          hasil.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
-          resolve(hasil);
+          resolve(items);
         } catch (err) {
           reject(err);
         }
@@ -94,19 +84,40 @@ function fetchFromGoogleCalendar(tahun) {
 }
 
 (async () => {
+  const master = [];
+
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
+    let items = [];
+
     try {
-      const data = await fetchFromGoogleCalendar(tahun);
-      if (!data.length) throw new Error("Data kosong");
+      items = await fetchFromGoogleCalendar(tahun);
+      if (!items.length) throw new Error("Data kosong");
+
+      // 📦 Untuk master.json (tanpa normalize)
+      const raw = items.map(item => {
+        const summary = item.summary?.trim();
+        const tanggal = item.start?.date;
+        if (!summary || !tanggal) return null;
+        return { Keterangan: summary, Tanggal: tanggal };
+      }).filter(Boolean);
+
+      if (raw.length) master.push({ tahun, data: raw });
+
+      // ✅ Simpan file {tahun}.json dengan normalize
+      const normalized = raw.map(item => {
+        const norm = normalize(item.Keterangan, tahun, item.Tanggal);
+        if (!norm) return null;
+        return { Keterangan: norm, Tanggal: item.Tanggal };
+      }).filter(Boolean);
 
       fs.mkdirSync("data", { recursive: true });
-      const file = path.join("data", `${tahun}.json`);
-      fs.writeFileSync(file, JSON.stringify(data, null, 2));
-      console.log(`✅ Disimpan ke ${file}`);
+      fs.writeFileSync(path.join("data", `${tahun}.json`), JSON.stringify(normalized, null, 2));
+      console.log(`✅ Disimpan ke data/${tahun}.json`);
+
     } catch (err) {
       console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
-      console.log(`🔁 Fallback ke script/python.py ${tahun}`);
+      console.log(`🔁 Fallback ke script/python.py ${tahun} (hanya untuk file tahunan)`);
       const res = spawnSync("python3", ["script/python.py", tahun], {
         stdio: "inherit"
       });
@@ -117,24 +128,11 @@ function fetchFromGoogleCalendar(tahun) {
     }
   }
 
-  // 🔁 Gabungkan hasil ke master.json jika ada
-  const master = [];
-
-  for (const tahun of TARGET_YEARS) {
-    const file = path.join("data", `${tahun}.json`);
-    if (fs.existsSync(file)) {
-      const data = JSON.parse(fs.readFileSync(file, "utf-8"));
-      if (data.length > 0) {
-        master.push({ tahun, data });
-      }
-    }
-  }
-
+  // 💾 Simpan master.json hanya jika ada data dari Google Calendar
   if (master.length > 0) {
-    const masterFile = path.join("data", "master.json");
-    fs.writeFileSync(masterFile, JSON.stringify(master, null, 2));
+    fs.writeFileSync(path.join("data", "master.json"), JSON.stringify(master, null, 2));
     console.log(`📦 File master.json berhasil disimpan (${master.length} tahun)`);
   } else {
-    console.log("🚫 Tidak ada data untuk disimpan ke master.json");
+    console.log("🚫 Tidak ada data dari Google Calendar untuk master.json");
   }
 })();
