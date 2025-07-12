@@ -88,7 +88,18 @@ const masterRaw = [];
     console.log(`📅 Memproses tahun ${tahun}...`);
     try {
       const items = await fetchFromGoogleCalendar(tahun);
-      if (!items.length) throw new Error("Data kosong");
+
+      // Simpan ke masterRaw walau kosong
+      const rawData = items.map((item) => ({
+        summary: item.summary?.trim(),
+        date: item.start?.date,
+      }));
+      masterRaw.push({ tahun, data: rawData });
+
+      if (!items.length) {
+        console.warn(`⚠️ Tidak ada event dari Google Calendar untuk ${tahun}`);
+        continue; // Jangan buat file {tahun}.json
+      }
 
       // Data normalize
       const data = items.map((item) => {
@@ -106,13 +117,6 @@ const masterRaw = [];
       fs.writeFileSync(file, JSON.stringify(data, null, 2));
       console.log(`✅ Disimpan ke ${file}`);
 
-      // Data mentah untuk master.json
-      const rawData = items.map((item) => ({
-        summary: item.summary?.trim(),
-        date: item.start?.date,
-      }));
-      masterRaw.push({ tahun, data: rawData });
-
     } catch (err) {
       console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
       console.log(`🔁 Fallback ke script/python.py ${tahun}`);
@@ -126,7 +130,7 @@ const masterRaw = [];
     }
   }
 
-  // Simpan master.json
+  // Simpan master.json meskipun tahun depan kosong
   const masterFile = path.join("data", "master.json");
   fs.writeFileSync(masterFile, JSON.stringify(masterRaw, null, 2));
   console.log(`✅ Disimpan ke ${masterFile}`);
