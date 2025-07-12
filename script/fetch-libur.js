@@ -9,7 +9,59 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
 const TARGET_YEARS = [new Date().getFullYear(), new Date().getFullYear() + 1];
 
-// ... fungsi konversi dan normalize sama seperti sebelumnya ...
+// Konversi Tahun Kalender
+const kongzili = (tahun) => tahun + 551;
+const saka = (tahun) => tahun - 78;
+const buddhist = (tahun) => tahun + 544;
+
+// Konversi tahun Hijriyah berdasarkan tanggal ISO
+function hijriyahYear(tanggalIso) {
+  const hijri = new HijriDate(new Date(tanggalIso));
+  return hijri.getFullYear();
+}
+
+function normalize(summary, tahun, tanggal) {
+  const lower = summary.toLowerCase();
+  let result = null;
+  let isBelumPasti = /\(belum pasti\)/i.test(summary) || lower.includes("belum pasti");
+
+  // Normalisasi nama libur
+  if (lower.includes("cuti")) {
+    if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri ${hijriyahYear(tanggal)} Hijriyah`;
+    else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
+    else if (lower.includes("natal")) result = "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
+    else if (lower.includes("waisak")) result = `Cuti Bersama Waisak ${buddhist(tahun)} BE`;
+    else result = `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
+  } else if (/hari tahun baru/i.test(summary)) result = `Tahun Baru ${tahun} Masehi`;
+  else if (/imlek/i.test(summary)) result = `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
+  else if (/nyepi/i.test(summary)) result = `Hari Suci Nyepi (Tahun Baru Saka ${saka(tahun)})`;
+  else if (/isra/i.test(summary)) result = "Isra Mikraj Nabi Muhammad S.A.W.";
+  else if (/idul fitri/i.test(summary)) result = `Hari Raya Idul Fitri ${hijriyahYear(tanggal)} Hijriyah`;
+  else if (/idul adha/i.test(summary)) result = `Hari Raya Idul Adha ${hijriyahYear(tanggal)} Hijriyah`;
+  else if (/maulid/i.test(summary)) result = "Maulid Nabi Muhammad S.A.W.";
+  else if (/muharam/.test(lower)) result = `1 Muharam Tahun Baru Islam ${hijriyahYear(tanggal)} Hijriyah`;
+  else if (/waisak/i.test(summary)) result = `Hari Raya Waisak ${buddhist(tahun)} BE`;
+  else if (/wafat/i.test(summary)) result = "Wafat Yesus Kristus";
+  else if (/paskah/i.test(summary)) result = "Hari Paskah (Kebangkitan Yesus Kristus)";
+  else if (/kenaikan/i.test(summary)) result = "Kenaikan Yesus Kristus";
+  else if (/hari raya natal/i.test(summary) || /natal/.test(summary)) result = "Kelahiran Yesus Kristus (Natal)";
+  else if (/buruh/i.test(summary)) result = "Hari Buruh Internasional";
+  else if (/pancasila/i.test(summary)) result = "Hari Lahir Pancasila";
+  else if (/kemerdekaan/i.test(summary)) result = `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
+
+  // Hapus tag "belum pasti" jika tanggal sudah lewat
+  if (isBelumPasti) {
+    const now = new Date();
+    const liburDate = new Date(tanggal);
+    if (liburDate <= now) isBelumPasti = false;
+  }
+
+  if (result && isBelumPasti && !result.includes("(belum pasti)")) {
+    result += " (belum pasti)";
+  }
+
+  return result;
+}
 
 function fetchFromGoogleCalendar(tahun) {
   return new Promise((resolve, reject) => {
@@ -44,14 +96,50 @@ function fetchFromGoogleCalendar(tahun) {
   });
 }
 
+const masterFile = path.join("data", "master.json");
+
+function loadMasterData() {
+  try {
+    const jsonData = fs.readFileSync(masterFile, "utf-8");
+    return JSON.parse(jsonData);
+  } catch {
+    return {}; // Kalau belum ada file atau error baca, return objek kosong
+  }
+}
+
+function saveMasterData(data) {
+  fs.mkdirSync("data", { recursive: true });
+  fs.writeFileSync(masterFile, JSON.stringify(data, null, 2));
+}
+
 (async () => {
-  const allData = [];
+  let masterData = loadMasterData();
+
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
     try {
       const data = await fetchFromGoogleCalendar(tahun);
       if (!data.length) throw new Error("Data kosong");
-      allData.push(...data);
+
+      // Gabungkan data baru dengan data lama tanpa hapus data lama, hindari duplikasi
+      if (!masterData[tahun]) {
+        masterData[tahun] = data;
+      } else {
+        const existing = masterData[tahun];
+        const combined = [...existing];
+
+        data.forEach((newItem) => {
+          const exists = existing.some(e =>
+            e.Tanggal === newItem.Tanggal && e.Keterangan === newItem.Keterangan
+          );
+          if (!exists) combined.push(newItem);
+        });
+
+        combined.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
+        masterData[tahun] = combined;
+      }
+
+      console.log(`✅ Data tahun ${tahun} siap digabung ke master.json`);
     } catch (err) {
       console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
       console.log(`🔁 Fallback ke script/python.py ${tahun}`);
@@ -61,25 +149,10 @@ function fetchFromGoogleCalendar(tahun) {
       if (res.status !== 0) {
         console.error(`❌ Gagal fallback Python untuk tahun ${tahun}`);
         process.exit(1);
-      } else {
-        // Kalau fallback berhasil, kamu bisa load file JSON fallback di sini
-        try {
-          const fallbackFile = path.join("data", `${tahun}.json`);
-          const fallbackData = JSON.parse(fs.readFileSync(fallbackFile, "utf-8"));
-          allData.push(...fallbackData);
-        } catch (e) {
-          console.error(`❌ Gagal baca file fallback untuk tahun ${tahun}: ${e.message}`);
-          process.exit(1);
-        }
       }
     }
   }
-  // Sortir gabungan data dari dua tahun supaya urut
-  allData.sort((a, b) => new Date(a.Tanggal) - new Date(b.Tanggal));
 
-  // Simpan ke satu file master.json
-  fs.mkdirSync("data", { recursive: true });
-  const masterFile = path.join("data", "master.json");
-  fs.writeFileSync(masterFile, JSON.stringify(allData, null, 2));
-  console.log(`✅ Semua data tahun ${TARGET_YEARS.join(", ")} disimpan ke ${masterFile}`);
+  saveMasterData(masterData);
+  console.log(`🎉 Semua data digabung dan disimpan ke ${masterFile}`);
 })();
