@@ -46,7 +46,7 @@ function fetchFromGoogleCalendar(tahun) {
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
     try {
-      const data = await fetchFromGoogleCalendar(tahun);
+      let data = await fetchFromGoogleCalendar(tahun);
       if (!data.length) throw new Error("Data kosong");
 
       fs.mkdirSync("data", { recursive: true });
@@ -54,7 +54,14 @@ function fetchFromGoogleCalendar(tahun) {
       fs.writeFileSync(file, JSON.stringify(data, null, 2));
       console.log(`✅ Disimpan ke ${file}`);
 
-      collected.push({ tahun, data });
+      // Tambahkan ke master hanya jika ada data valid (tidak kosong dan tidak "")
+      const filtered = data.filter(h => h.Keterangan && h.Keterangan.trim() !== "");
+      if (filtered.length > 0) {
+        collected.push({ tahun, data: filtered });
+      } else {
+        console.warn(`⚠️ Tidak ada entri valid untuk tahun ${tahun}, dilewati dari master.json`);
+      }
+
     } catch (err) {
       console.warn(`⚠️ Gagal ambil dari Google Calendar: ${err.message}`);
       console.log(`🔁 Fallback ke script/python.py ${tahun}`);
@@ -63,26 +70,34 @@ function fetchFromGoogleCalendar(tahun) {
       });
       if (res.status !== 0) {
         console.error(`❌ Gagal fallback Python untuk tahun ${tahun}`);
-        process.exit(1);
+        continue;
       }
 
       // Baca hasil fallback Python
       const fallbackFile = path.join("data", `${tahun}.json`);
       if (fs.existsSync(fallbackFile)) {
         const content = fs.readFileSync(fallbackFile, "utf8");
-        const parsed = JSON.parse(content).filter(h => h.Keterangan && h.Tanggal);
-        collected.push({ tahun, data: parsed });
+        const parsed = JSON.parse(content).filter(h => h.Keterangan && h.Keterangan.trim() !== "");
+        if (parsed.length > 0) {
+          collected.push({ tahun, data: parsed });
+        } else {
+          console.warn(`⚠️ Hasil fallback kosong untuk tahun ${tahun}, dilewati dari master.json`);
+        }
       }
     }
   }
 
-  // Simpan master.json
-  try {
-    const outputPath = path.join("data", "master.json");
-    fs.writeFileSync(outputPath, JSON.stringify(collected, null, 2));
-    console.log(`📦 File master.json disimpan di ${outputPath}`);
-  } catch (err) {
-    console.error("❌ Gagal menyimpan master.json:", err.message);
-    process.exit(1);
+  // Simpan master.json jika ada data
+  if (collected.length > 0) {
+    try {
+      const outputPath = path.join("data", "master.json");
+      fs.writeFileSync(outputPath, JSON.stringify(collected, null, 2));
+      console.log(`📦 File master.json disimpan di ${outputPath}`);
+    } catch (err) {
+      console.error("❌ Gagal menyimpan master.json:", err.message);
+      process.exit(1);
+    }
+  } else {
+    console.warn("⚠️ Tidak ada data libur valid untuk tahun-tahun yang diproses. master.json tidak dibuat.");
   }
 })();
