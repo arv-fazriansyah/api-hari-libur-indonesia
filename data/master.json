@@ -1,210 +1,130 @@
 [
   {
-    "Keterangan": "Tahun Baru 2025 Masehi",
-    "Tanggal": "2025-01-01"
-  },
-  {
-    "Keterangan": "Isra Mikraj Nabi Muhammad S.A.W.",
-    "Tanggal": "2025-01-27"
-  },
-  {
-    "Keterangan": "Tahun Baru Imlek 2576 Kongzili",
-    "Tanggal": "2025-01-29"
-  },
-  {
-    "Keterangan": "Hari Suci Nyepi (Tahun Baru Saka 1947)",
-    "Tanggal": "2025-03-29"
-  },
-  {
-    "Keterangan": "Hari Raya Idul Fitri 1446 Hijriyah",
-    "Tanggal": "2025-03-31"
-  },
-  {
-    "Keterangan": "Hari Raya Idul Fitri 1446 Hijriyah",
-    "Tanggal": "2025-04-01"
-  },
-  {
-    "Keterangan": "Wafat Yesus Kristus",
-    "Tanggal": "2025-04-18"
-  },
-  {
-    "Keterangan": "Hari Paskah (Kebangkitan Yesus Kristus)",
-    "Tanggal": "2025-04-20"
-  },
-  {
-    "Keterangan": "Hari Buruh Internasional",
-    "Tanggal": "2025-05-01"
-  },
-  {
-    "Keterangan": "Hari Raya Waisak 2569 BE",
-    "Tanggal": "2025-05-12"
-  },
-  {
-    "Keterangan": "Kenaikan Yesus Kristus",
-    "Tanggal": "2025-05-29"
-  },
-  {
-    "Keterangan": "Hari Lahir Pancasila",
-    "Tanggal": "2025-06-01"
-  },
-  {
-    "Keterangan": "Hari Raya Idul Adha 1446 Hijriyah",
-    "Tanggal": "2025-06-06"
-  },
-  {
-    "Keterangan": "1 Muharam Tahun Baru Islam 1447 Hijriyah",
-    "Tanggal": "2025-06-27"
-  },
-  {
-    "Keterangan": "Proklamasi Kemerdekaan Ke-80",
-    "Tanggal": "2025-08-17"
-  },
-  {
-    "Keterangan": "Maulid Nabi Muhammad S.A.W.",
-    "Tanggal": "2025-09-05"
-  },
-  {
-    "Keterangan": "Kelahiran Yesus Kristus (Natal)",
-    "Tanggal": "2025-12-25"
-  },
-  {
-    "Keterangan": "Tahun Baru 2026 Masehi",
-    "Tanggal": "2026-01-01"
-  },
-  {
-    "Keterangan": "Isra Mikraj Nabi Muhammad S.A.W.",
-    "Tanggal": "2026-01-16"
-  },
-  {
-    "Keterangan": "Tahun Baru Imlek 2577 Kongzili",
-    "Tanggal": "2026-02-17"
-  },
-  {
-    "Keterangan": "Hari Suci Nyepi (Tahun Baru Saka 1948)",
-    "Tanggal": "2026-03-19"
-  },
-  {
-    "Keterangan": "Hari Raya Idul Fitri 1447 Hijriyah",
-    "Tanggal": "2026-03-21"
-  },
-  {
-    "Keterangan": "Hari Raya Idul Fitri 1447 Hijriyah",
-    "Tanggal": "2026-03-22"
-  },
-  {
-    "Keterangan": "Wafat Yesus Kristus",
-    "Tanggal": "2026-04-03"
-  },
-  {
-    "Keterangan": "Hari Paskah (Kebangkitan Yesus Kristus)",
-    "Tanggal": "2026-04-05"
-  },
-  {
-    "Keterangan": "Hari Buruh Internasional",
-    "Tanggal": "2026-05-01"
-  },
-  {
-    "Keterangan": "Hari Raya Waisak 2570 BE",
-    "Tanggal": "2026-05-02"
-  },
-  {
-    "Keterangan": "Kenaikan Yesus Kristus",
-    "Tanggal": "2026-05-14"
-  },
-  {
-    "Keterangan": "Hari Raya Idul Adha 1447 Hijriyah",
-    "Tanggal": "2026-05-27"
-  },
-  {
-    "Keterangan": "Hari Lahir Pancasila",
-    "Tanggal": "2026-06-01"
-  },
-  {
-    "Keterangan": "1 Muharam Tahun Baru Islam 1448 Hijriyah",
-    "Tanggal": "2026-06-17"
-  },
-  {
-    "Keterangan": "Proklamasi Kemerdekaan Ke-81",
-    "Tanggal": "2026-08-17"
-  },
-  {
-    "Keterangan": "Maulid Nabi Muhammad S.A.W.",
-    "Tanggal": "2026-08-26"
-  },
-  {
-    "Keterangan": "Kelahiran Yesus Kristus (Natal)",
-    "Tanggal": "2026-12-25"
-  },
-  {
     "tahun": 2025,
     "data": [
       {
-        "Keterangan": "Tahun Baru 2025 Masehi",
+        "Keterangan": "Hari Tahun Baru",
         "Tanggal": "2025-01-01"
       },
       {
-        "Keterangan": "Isra Mikraj Nabi Muhammad S.A.W.",
+        "Keterangan": "Isra Mikraj Nabi Muhammad",
         "Tanggal": "2025-01-27"
       },
       {
-        "Keterangan": "Tahun Baru Imlek 2576 Kongzili",
+        "Keterangan": "Cuti Bersama Tahun Baru Imlek",
+        "Tanggal": "2025-01-28"
+      },
+      {
+        "Keterangan": "Tahun Baru Imlek",
         "Tanggal": "2025-01-29"
       },
       {
-        "Keterangan": "Hari Suci Nyepi (Tahun Baru Saka 1947)",
+        "Keterangan": "Ramadan Start",
+        "Tanggal": "2025-03-01"
+      },
+      {
+        "Keterangan": "Cuti Bersama Hari Suci Nyepi (Tahun Baru Saka)",
+        "Tanggal": "2025-03-28"
+      },
+      {
+        "Keterangan": "Hari Suci Nyepi (Tahun Baru Saka)",
         "Tanggal": "2025-03-29"
       },
       {
-        "Keterangan": "Hari Raya Idul Fitri 1446 Hijriyah",
+        "Keterangan": "Hari Idul Fitri",
         "Tanggal": "2025-03-31"
       },
       {
-        "Keterangan": "Hari Raya Idul Fitri 1446 Hijriyah",
+        "Keterangan": "Hari Idul Fitri",
         "Tanggal": "2025-04-01"
       },
       {
-        "Keterangan": "Wafat Yesus Kristus",
+        "Keterangan": "Cuti Bersama Idul Fitri",
+        "Tanggal": "2025-04-02"
+      },
+      {
+        "Keterangan": "Cuti Bersama Idul Fitri",
+        "Tanggal": "2025-04-03"
+      },
+      {
+        "Keterangan": "Cuti Bersama Idul Fitri",
+        "Tanggal": "2025-04-04"
+      },
+      {
+        "Keterangan": "Cuti Bersama Idul Fitri",
+        "Tanggal": "2025-04-07"
+      },
+      {
+        "Keterangan": "Wafat Isa Almasih",
         "Tanggal": "2025-04-18"
       },
       {
-        "Keterangan": "Hari Paskah (Kebangkitan Yesus Kristus)",
+        "Keterangan": "Hari Paskah",
         "Tanggal": "2025-04-20"
       },
       {
-        "Keterangan": "Hari Buruh Internasional",
+        "Keterangan": "Hari Buruh Internasional / Pekerja",
         "Tanggal": "2025-05-01"
       },
       {
-        "Keterangan": "Hari Raya Waisak 2569 BE",
+        "Keterangan": "Hari Raya Waisak",
         "Tanggal": "2025-05-12"
       },
       {
-        "Keterangan": "Kenaikan Yesus Kristus",
+        "Keterangan": "Cuti Bersama Waisak",
+        "Tanggal": "2025-05-13"
+      },
+      {
+        "Keterangan": "Kenaikan Isa Al Masih",
         "Tanggal": "2025-05-29"
+      },
+      {
+        "Keterangan": "Cuti Bersama Kenaikan Isa Al Masih",
+        "Tanggal": "2025-05-30"
       },
       {
         "Keterangan": "Hari Lahir Pancasila",
         "Tanggal": "2025-06-01"
       },
       {
-        "Keterangan": "Hari Raya Idul Adha 1446 Hijriyah",
+        "Keterangan": "Idul Adha (Lebaran Haji) (belum pasti)",
         "Tanggal": "2025-06-06"
       },
       {
-        "Keterangan": "1 Muharam Tahun Baru Islam 1447 Hijriyah",
+        "Keterangan": "Idul Adha (Lebaran Haji)",
+        "Tanggal": "2025-06-09"
+      },
+      {
+        "Keterangan": "Satu Muharam / Tahun Baru Hijriah (belum pasti)",
         "Tanggal": "2025-06-27"
       },
       {
-        "Keterangan": "Proklamasi Kemerdekaan Ke-80",
+        "Keterangan": "Hari Proklamasi Kemerdekaan R.I.",
         "Tanggal": "2025-08-17"
       },
       {
-        "Keterangan": "Maulid Nabi Muhammad S.A.W.",
+        "Keterangan": "Maulid Nabi Muhammad (belum pasti)",
         "Tanggal": "2025-09-05"
       },
       {
-        "Keterangan": "Kelahiran Yesus Kristus (Natal)",
+        "Keterangan": "Diwali",
+        "Tanggal": "2025-10-21"
+      },
+      {
+        "Keterangan": "Malam Natal",
+        "Tanggal": "2025-12-24"
+      },
+      {
+        "Keterangan": "Hari Raya Natal",
         "Tanggal": "2025-12-25"
+      },
+      {
+        "Keterangan": "Cuti Bersama Natal (Hari Tinju)",
+        "Tanggal": "2025-12-26"
+      },
+      {
+        "Keterangan": "Malam Tahun Baru",
+        "Tanggal": "2025-12-31"
       }
     ]
   },
