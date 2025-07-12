@@ -25,7 +25,7 @@ if (lower.includes("cuti")) {
   else if (lower.includes("natal")) result = "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
   else if (lower.includes("waisak")) result = `Cuti Bersama Waisak`;
   else if (lower.includes("imlek")) result = `Cuti Bersama Tahun Baru Imlek`;
-  else if (lower.includes("nyepi")) result = `Cuti Bersama Hari Suci Nyepi)`;
+  else if (lower.includes("nyepi")) result = `Cuti Bersama Hari Suci Nyepi`;
   else result = `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
 } else if (/hari tahun baru/i.test(summary)) result = `Tahun Baru ${tahun} Masehi`;
   else if (/imlek/i.test(summary)) result = `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
