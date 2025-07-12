@@ -20,12 +20,12 @@ function normalize(summary, tahun, tanggal) {
   let isBelumPasti = /\(belum pasti\)/i.test(summary) || lower.includes("belum pasti");
 
 if (lower.includes("cuti")) {
-  if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri ${hijriyah(tahun)} Hijriyah`;
+  if (lower.includes("idul fitri")) result = `Cuti Bersama Hari Raya Idul Fitri`;
   else if (lower.includes("kenaikan")) result = "Cuti Bersama Kenaikan Yesus Kristus";
   else if (lower.includes("natal")) result = "Cuti Bersama Kelahiran Yesus Kristus (Natal)";
-  else if (lower.includes("waisak")) result = `Cuti Bersama Waisak ${buddhist(tahun)} BE`;
-  else if (lower.includes("imlek")) result = `Cuti Bersama Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
-  else if (lower.includes("nyepi")) result = `Cuti Bersama Hari Suci Nyepi (Tahun Baru Saka ${saka(tahun)})`;
+  else if (lower.includes("waisak")) result = `Cuti Bersama Waisak`;
+  else if (lower.includes("imlek")) result = `Cuti Bersama Tahun Baru Imlek`;
+  else if (lower.includes("nyepi")) result = `Cuti Bersama Hari Suci Nyepi)`;
   else result = `Cuti Bersama ${summary.replace(/cuti bersama/i, "").trim()}`;
 } else if (/hari tahun baru/i.test(summary)) result = `Tahun Baru ${tahun} Masehi`;
   else if (/imlek/i.test(summary)) result = `Tahun Baru Imlek ${kongzili(tahun)} Kongzili`;
