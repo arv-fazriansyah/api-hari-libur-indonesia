@@ -9,6 +9,10 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const CALENDAR_ID = "id.indonesian%23holiday@group.v.calendar.google.com";
 const TARGET_YEARS = [new Date().getFullYear(), new Date().getFullYear() + 1];
 
+// Tahun-tahun untuk master.json (hanya dari Google)
+const master = [];
+
+// Konversi tahun
 const kongzili = (tahun) => tahun + 551;
 const saka = (tahun) => tahun - 78;
 const buddhist = (tahun) => tahun + 544;
@@ -46,12 +50,11 @@ function normalize(summary, tahun, tanggal) {
   else if (/pancasila/i.test(summary)) result = "Hari Lahir Pancasila";
   else if (/kemerdekaan/i.test(summary)) result = `Proklamasi Kemerdekaan Ke-${tahun - 1945}`;
 
-  // Komentar baris ini jika ingin tetap tampil "(belum pasti)" meskipun sudah lewat
-   if (isBelumPasti) {
-     const now = new Date();
-     const liburDate = new Date(tanggal);
-     if (liburDate <= now) isBelumPasti = false;
-   }
+  if (isBelumPasti) {
+    const now = new Date();
+    const liburDate = new Date(tanggal);
+    if (liburDate <= now) isBelumPasti = false;
+  }
 
   if (result && isBelumPasti && !result.includes("(belum pasti)")) {
     result += " (belum pasti)";
@@ -73,7 +76,8 @@ function fetchFromGoogleCalendar(tahun) {
       res.on("end", () => {
         try {
           const json = JSON.parse(raw);
-          resolve(json.items || []);
+          const items = json.items || [];
+          resolve(items);
         } catch (err) {
           reject(err);
         }
@@ -83,70 +87,59 @@ function fetchFromGoogleCalendar(tahun) {
 }
 
 (async () => {
-  const master = [];
-
   for (const tahun of TARGET_YEARS) {
     console.log(`📅 Memproses tahun ${tahun}...`);
-    let items = [];
-    let fromGoogle = false;
+    let fetchedFromGoogle = false;
 
     try {
-      items = await fetchFromGoogleCalendar(tahun);
-      if (items.length > 0) {
-        fromGoogle = true;
-        console.log(`✅ Ditemukan ${items.length} libur dari Google Calendar`);
-      } else {
-        throw new Error("Kosong, fallback ke Python");
-      }
-    } catch (err) {
-      console.warn(`⚠️ Tidak ada data dari Google Calendar: ${err.message}`);
-      console.log(`🔁 Menjalankan script/python.py ${tahun}`);
-      const res = spawnSync("python3", ["script/python.py", tahun], {
-        stdio: "inherit"
-      });
-      if (res.status !== 0) {
-        console.error(`❌ Gagal menjalankan fallback Python untuk ${tahun}`);
-        process.exit(1);
-      }
-
-      const filepath = path.join("data", `${tahun}.json`);
-      if (fs.existsSync(filepath)) {
-        items = JSON.parse(fs.readFileSync(filepath, "utf-8")).map((x) => ({
-          summary: x.Keterangan,
-          start: { date: x.Tanggal }
-        }));
-      }
-    }
-
-    // Buat file per tahun (normalize)
-    const normalized = items.map((item) => {
-      const summary = item.summary?.trim();
-      const tanggal = item.start?.date;
-      const norm = normalize(summary, tahun, tanggal);
-      if (!norm || !tanggal) return null;
-      return { Keterangan: norm, Tanggal: tanggal };
-    }).filter(Boolean);
-
-    fs.mkdirSync("data", { recursive: true });
-    fs.writeFileSync(path.join("data", `${tahun}.json`), JSON.stringify(normalized, null, 2));
-    console.log(`💾 Disimpan: data/${tahun}.json`);
-
-    // Tambahkan ke master.json HANYA jika dari Google Calendar
-    if (fromGoogle) {
+      const items = await fetchFromGoogleCalendar(tahun);
       const raw = items.map((item) => {
         const summary = item.summary?.trim();
         const tanggal = item.start?.date;
         if (!summary || !tanggal) return null;
         return { Keterangan: summary, Tanggal: tanggal };
       }).filter(Boolean);
-      if (raw.length) master.push({ tahun, data: raw });
+
+      if (raw.length > 0) {
+        // ✅ Normalize dan simpan
+        const normalized = raw.map(item => {
+          const norm = normalize(item.Keterangan, tahun, item.Tanggal);
+          if (!norm) return null;
+          return { Keterangan: norm, Tanggal: item.Tanggal };
+        }).filter(Boolean);
+
+        fs.mkdirSync("data", { recursive: true });
+        fs.writeFileSync(path.join("data", `${tahun}.json`), JSON.stringify(normalized, null, 2));
+        console.log(`✅ Disimpan ke data/${tahun}.json (hasil normalize Google)`);
+
+        // Tambah ke master (tanpa normalize)
+        master.push({ tahun, data: raw });
+
+        fetchedFromGoogle = true;
+      } else {
+        throw new Error("Data kosong dari Google");
+      }
+    } catch (err) {
+      console.warn(`⚠️ Gagal fetch Google Calendar: ${err.message}`);
+    }
+
+    if (!fetchedFromGoogle) {
+      console.log(`🔁 Fallback ke script/python.py ${tahun}`);
+      const res = spawnSync("python3", ["script/python.py", tahun], {
+        stdio: "inherit"
+      });
+      if (res.status !== 0) {
+        console.error(`❌ Gagal fallback Python untuk tahun ${tahun}`);
+        process.exit(1);
+      }
     }
   }
 
-  // Simpan master.json jika ada hasil dari Google
+  // 💾 Simpan master.json jika ada data dari Google Calendar
   if (master.length > 0) {
     fs.writeFileSync(path.join("data", "master.json"), JSON.stringify(master, null, 2));
     console.log(`📦 File master.json berhasil disimpan (${master.length} tahun)`);
+
   } else {
     console.log("🚫 Tidak ada data dari Google Calendar untuk master.json");
   }
