@@ -1,0 +1,35 @@
+name: Update Hari Libur Nasional
+
+on:
+  schedule:
+    - cron: '0 18 * * *'  # Jam 01:00 WIB (18:00 UTC hari sebelumnya)
+  workflow_dispatch:     # Bisa juga dijalankan manual
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          npm install dotenv
+
+      - name: Jalankan fetch libur
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+        run: |
+          node script/fetch-libur.js
+
+      - name: Commit hasil
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🔄 Update libur nasional otomatis"
+          file_pattern: "data/*.json"
+          push_options: --force
